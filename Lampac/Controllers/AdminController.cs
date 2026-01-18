@@ -423,30 +423,26 @@ namespace Lampac.Controllers
                     #region htmlSuccess
 
                     #region shared_passwd
-                    string sharedBlock = string.Empty;
-                    if (IO.File.Exists("isdocker") == false)
+                    string shared_passwd = CrypTo.unic(8).ToLower();
+
+                    UpdateInitConf(j =>
                     {
-                        string shared_passwd = CrypTo.unic(8).ToLower();
-
-                        UpdateInitConf(j =>
+                        var accsdb = j["accsdb"] as JObject;
+                        if (accsdb == null)
                         {
-                            var accsdb = j["accsdb"] as JObject;
-                            if (accsdb == null)
-                            {
-                                accsdb = new JObject();
-                                j["accsdb"] = accsdb;
-                            }
+                            accsdb = new JObject();
+                            j["accsdb"] = accsdb;
+                        }
 
-                            accsdb["enable"] = true;
-                            accsdb["shared_passwd"] = shared_passwd;
-                        });
+                        accsdb["enable"] = true;
+                        accsdb["shared_passwd"] = shared_passwd;
+                    });
 
-                        sharedBlock = $@"<div class=""block""><b>Авторизация в Lampa</b><br /><br />
+                    string sharedBlock = $@"<div class=""block""><b>Авторизация в Lampa</b><br /><br />
                             Пароль: {shared_passwd}
                             <br><br>
                             Отключить авторизацию можно в init.conf (accsdb) или {host}/admin (пользователи) 
                         </div><hr />";
-                    }
                     #endregion
 
                     string htmlSuccesds = $@"<!DOCTYPE html>

@@ -32,7 +32,7 @@ namespace Lampac.Controllers
                 <pre style='background: #e9ecef; padding: 1em;'><code>""accsdb"": {{
   ""accounts"": {{
     ""{pw1}@mail.ru"": ""2040-10-17T00:00:00"", // email cub.red
-    ""{pw2}"": ""2040-10-17T00:00:00"" // unic_id
+    ""{pw2}"": ""2040-10-17T00:00:00"", // unic_id
   }}
 }}</code></pre>
 				<br>
