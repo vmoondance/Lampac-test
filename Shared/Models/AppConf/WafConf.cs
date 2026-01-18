@@ -6,6 +6,8 @@ namespace Shared.Models.AppConf
     {
         public bool enable { get; set; }
 
+        public bool allowExternalIpAccess { get; set; }
+
         public bool bruteForceProtection { get; set; }
 
         public List<string> whiteIps { get; set; }

@@ -92,7 +92,7 @@ namespace Lampac.Engine.Middlewares
             }
             #endregion
 
-            if (AppInit.conf.accsdb.enable)
+            if (AppInit.conf.accsdb.enable || (!requestInfo.IsLocalIp && !AppInit.conf.WAF.allowExternalIpAccess))
             {
                 var accsdb = AppInit.conf.accsdb;
 
