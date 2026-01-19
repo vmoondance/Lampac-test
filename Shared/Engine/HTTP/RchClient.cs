@@ -414,7 +414,7 @@ namespace Shared.Engine
                         send_headers = new Dictionary<string, string>(headers.Count);
 
                     foreach (var h in headers)
-                        send_headers[h.name.ToLower().Trim()] = h.val;
+                        send_headers[h.name.ToLowerAndTrim()] = h.val;
                 }
 
                 if (send_headers != null && send_headers.Count > 0 && clientInfo.data.rch_info.rchtype != "apk")

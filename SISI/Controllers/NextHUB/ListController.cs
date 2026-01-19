@@ -85,7 +85,7 @@ namespace SISI.Controllers.NextHUB
             {
                 var msort = new MenuItem()
                 {
-                    title = $"Сортировка: {init.menu.sort.FirstOrDefault(i => i.Value.Trim() == sort).Key ?? init.menu.sort.First().Key}",
+                    title = $"Сортировка: {init.menu.sort.FirstOrDefault(i => i.Value.Equals(sort, StringComparison.OrdinalIgnoreCase)).Key ?? init.menu.sort.First().Key}",
                     playlist_url = "submenu",
                     submenu = new List<MenuItem>()
                 };
@@ -113,7 +113,7 @@ namespace SISI.Controllers.NextHUB
 
                 var mcat = new MenuItem()
                 {
-                    title = $"Категории: {categories.FirstOrDefault(i => i.Value.Trim() == cat).Key ?? "Выбрать"}",
+                    title = $"Категории: {categories.FirstOrDefault(i => i.Value.Equals(cat, StringComparison.OrdinalIgnoreCase)).Key ?? "Выбрать"}",
                     playlist_url = "submenu",
                     submenu = new List<MenuItem>()
                 };
@@ -143,7 +143,7 @@ namespace SISI.Controllers.NextHUB
 
                     var mcat = new MenuItem()
                     {
-                        title = $"{custom.name}: {custom.submenu.FirstOrDefault(i => i.Value.Trim() == argvalue).Key ?? "Выбрать"}",
+                        title = $"{custom.name}: {custom.submenu.FirstOrDefault(i => i.Value.Equals(argvalue, StringComparison.OrdinalIgnoreCase)).Key ?? "Выбрать"}",
                         playlist_url = "submenu",
                         submenu = new List<MenuItem>()
                     };

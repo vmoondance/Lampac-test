@@ -558,7 +558,7 @@ namespace Online.Controllers
 
             if (!hybridCache.TryGetValue(memKey, out (int category_id, JToken data) res))
             {
-                string stitle = title.ToLower();
+                string stitle = title.ToLowerAndTrim();
 
                 if (memKey.Contains(":viewsearch:"))
                 {
@@ -573,12 +573,12 @@ namespace Online.Controllers
                     {
                         foreach (var item in root["data"])
                         {
-                            if (item.Value<string>("name")?.ToLower()?.Trim() == stitle)
+                            if (item.Value<string>("name")?.ToLowerAndTrim() == stitle)
                             {
                                 int y = item.Value<int>("year");
                                 if (y > 0 && (y == year || y == (year - 1) || y == (year + 1)))
                                 {
-                                    if (original_language == "ru" && item.Value<string>("country")?.ToLower() != "россия")
+                                    if (original_language == "ru" && item.Value<string>("country")?.ToLowerAndTrim() != "россия")
                                         continue;
 
                                     res.data = item;

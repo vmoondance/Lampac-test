@@ -228,7 +228,7 @@ namespace Online.Controllers
                                     var match = Regex.Match(magnet, "(&|\\?)tr=([^&\\?]+)");
                                     while (match.Success)
                                     {
-                                        string t = match.Groups[2].Value.Trim().ToLower();
+                                        string t = match.Groups[2].Value.ToLowerAndTrim();
                                         if (!string.IsNullOrEmpty(t))
                                             tr += t.Contains("/") || t.Contains(":") ? $"&tr={HttpUtility.UrlEncode(t)}" : $"&tr={t}";
 

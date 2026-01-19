@@ -133,7 +133,7 @@ namespace TorrServer.Controllers
                     byte[] data = Convert.FromBase64String(Authorization.ToString().Replace("Basic ", ""));
                     string[] decodedString = Encoding.UTF8.GetString(data).Split(":");
 
-                    string login = decodedString[0].ToLower().Trim();
+                    string login = decodedString[0].ToLowerAndTrim();
                     string passwd = decodedString[1];
 
                     if (AppInit.conf.accsdb.findUser(login) is AccsUser user && !user.ban && user.expires > DateTime.UtcNow && passwd == ModInit.conf.defaultPasswd)

@@ -145,22 +145,22 @@ namespace Shared.Engine
 
             if (useDefaultHeaders)
             {
-                if (headers != null && headers.FirstOrDefault(i => i.name.ToLower() == "user-agent") != null)
+                if (headers != null && headers.FirstOrDefault(i => i.name.Equals("user-agent", StringComparison.OrdinalIgnoreCase)) != null)
                 {
                     foreach (var h in defaultCommonHeaders)
-                        addHeaders.TryAdd(h.Key.ToLower().Trim(), h.Value);
+                        addHeaders.TryAdd(h.Key.ToLowerAndTrim(), h.Value);
                 }
                 else
                 {
                     foreach (var h in defaultFullHeaders)
-                        addHeaders.TryAdd(h.Key.ToLower().Trim(), h.Value);
+                        addHeaders.TryAdd(h.Key.ToLowerAndTrim(), h.Value);
                 }
             }
 
             if (headers != null)
             {
                 foreach (var h in headers)
-                    addHeaders[h.name.ToLower().Trim()] = h.val;
+                    addHeaders[h.name.ToLowerAndTrim()] = h.val;
             }
 
             if (NormalizeHeaders(addHeaders) is var normalizeHeaders && normalizeHeaders != null)

@@ -354,7 +354,7 @@ namespace Shared.Engine.Online
                             #region voice
                             string voice = match.Groups["voice"].Value.Trim();
 
-                            if (!string.IsNullOrEmpty(match.Groups["imgname"].Value) && !voice.ToLower().Contains(match.Groups["imgname"].Value.ToLower().Trim()))
+                            if (!string.IsNullOrEmpty(match.Groups["imgname"].Value) && !voice.ToLower().Contains(match.Groups["imgname"].Value.ToLowerAndTrim()))
                                 voice += $" ({match.Groups["imgname"].Value.Trim()})";
 
                             if (voice == "-" || string.IsNullOrEmpty(voice))
@@ -409,7 +409,7 @@ namespace Shared.Engine.Online
                         }
 
                         string name = match.Groups["name"].Value.Trim();
-                        if (!string.IsNullOrEmpty(match.Groups["imgname"].Value) && !name.ToLower().Contains(match.Groups["imgname"].Value.ToLower().Trim()))
+                        if (!string.IsNullOrEmpty(match.Groups["imgname"].Value) && !name.ToLower().Contains(match.Groups["imgname"].Value.ToLowerAndTrim()))
                             name += $" ({match.Groups["imgname"].Value})";
 
                         string link = host + $"{route}/serial?rjson={rjson}&title={enc_title}&original_title={enc_original_title}&href={enc_href}&id={result.id}&t={match.Groups["translator"].Value}";

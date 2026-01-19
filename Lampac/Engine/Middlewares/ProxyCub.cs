@@ -417,7 +417,7 @@ namespace Lampac.Engine.Middlewares
             #region Headers
             foreach (var header in request.Headers)
             {
-                string key = header.Key.ToLowerInvariant().Trim();
+                string key = header.Key.ToLowerAndTrim();
 
                 if (key is "host" or "origin" or "referer" or "content-disposition" or "accept-encoding")
                     continue;
@@ -470,7 +470,7 @@ namespace Lampac.Engine.Middlewares
             {
                 foreach (var header in headers)
                 {
-                    string key = header.Key.ToLowerInvariant().Trim();
+                    string key = header.Key.ToLowerAndTrim();
 
                     if (key is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition" or "content-length")
                         continue;

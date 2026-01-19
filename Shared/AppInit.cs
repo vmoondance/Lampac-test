@@ -172,7 +172,7 @@ namespace Shared
                     {
                         conf.accsdb.users.Add(new AccsUser()
                         {
-                            id = u.Key.ToLower().Trim(),
+                            id = u.Key.ToLowerAndTrim(),
                             expires = u.Value
                         });
                     }
@@ -197,7 +197,7 @@ namespace Shared
                             try
                             {
                                 DateTime e = DateTime.FromFileTimeUtc(ex);
-                                string email = data[0].ToLower().Trim();
+                                string email = data[0].ToLowerAndTrim();
 
                                 if (conf.accsdb.findUser(email) is AccsUser user)
                                 {

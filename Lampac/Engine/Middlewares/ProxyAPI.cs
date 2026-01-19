@@ -557,7 +557,7 @@ namespace Lampac.Engine.Middlewares
                 if (headers != null && headers.Count > 0)
                 {
                     foreach (var h in headers)
-                        addHeaders[h.name.ToLowerInvariant().Trim()] = [h.val];
+                        addHeaders[h.name.ToLowerAndTrim()] = [h.val];
                 }
 
                 if (ismedia)
@@ -569,7 +569,7 @@ namespace Lampac.Engine.Middlewares
                 {
                     foreach (var header in request.Headers)
                     {
-                        string key = header.Key.ToLowerInvariant().Trim();
+                        string key = header.Key.ToLowerAndTrim();
 
                         if (key is "host" or "origin" or "user-agent" or "referer" or "content-disposition" or "accept-encoding")
                             continue;

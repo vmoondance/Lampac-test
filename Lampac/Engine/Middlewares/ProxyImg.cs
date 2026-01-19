@@ -260,7 +260,7 @@ namespace Lampac.Engine.Middlewares
                             httpContext.Response.StatusCode = (int)response.StatusCode;
 
                             if (response.Content.Headers.TryGetValues("Content-Type", out var contype))
-                                httpContext.Response.ContentType = contype?.FirstOrDefault()?.ToLower()?.Trim() ?? contentType;
+                                httpContext.Response.ContentType = contype?.FirstOrDefault()?.ToLowerAndTrim() ?? contentType;
                             else
                                 httpContext.Response.ContentType = contentType;
 

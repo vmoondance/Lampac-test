@@ -107,7 +107,7 @@ namespace Shared.Engine.Online
 
                 foreach (var similar in results)
                 {
-                    string pick = similar.title?.ToLower()?.Trim();
+                    string pick = similar.title?.ToLowerAndTrim();
                     if (string.IsNullOrEmpty(pick))
                         continue;
 
@@ -142,7 +142,7 @@ namespace Shared.Engine.Online
 
             foreach (var i in results)
             {
-                if (i.title == null || i.title.ToLower().Trim() != pick)
+                if (i.title == null || i.title.ToLowerAndTrim() != pick)
                     continue;
 
                 content.Add(i);

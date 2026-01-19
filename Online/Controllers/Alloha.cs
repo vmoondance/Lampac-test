@@ -465,16 +465,16 @@ namespace Online.Controllers
 
                     if (root.ContainsKey("data"))
                     {
-                        string stitle = title.ToLower();
+                        string stitle = title.ToLowerAndTrim();
 
                         foreach (var item in root["data"])
                         {
-                            if (item.Value<string>("name")?.ToLower()?.Trim() == stitle)
+                            if (item.Value<string>("name")?.ToLowerAndTrim() == stitle)
                             {
                                 int y = item.Value<int>("year");
                                 if (y > 0 && (y == year || y == (year - 1) || y == (year + 1)))
                                 {
-                                    if (original_language == "ru" && item.Value<string>("country")?.ToLower() != "россия")
+                                    if (original_language == "ru" && item.Value<string>("country")?.ToLowerAndTrim() != "россия")
                                         continue;
 
                                     res.data = item;

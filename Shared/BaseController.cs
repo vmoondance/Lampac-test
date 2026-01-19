@@ -154,7 +154,7 @@ namespace Shared
             var tempHeaders = new Dictionary<string, string>(_headers.Count);
 
             string ip = requestInfo.IP;
-            string account_email = HttpContext.Request.Query["account_email"].ToString()?.ToLower().Trim() ?? string.Empty;
+            string account_email = HttpContext.Request.Query["account_email"].ToString()?.ToLowerAndTrim() ?? string.Empty;
 
             foreach (var h in _headers)
             {

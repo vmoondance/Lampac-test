@@ -65,11 +65,10 @@ namespace Lampac.Engine.Middlewares
             {
                 headersSet = [.. hashAllowHeaders];
 
-                foreach (var header in requestedHeaders.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries))
+                foreach (string header in requestedHeaders.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries))
                 {
-                    var h = header.Trim();
-                    if (!string.IsNullOrEmpty(h))
-                        headersSet.Add(h);
+                    if (!string.IsNullOrWhiteSpace(header))
+                        headersSet.Add(header.Trim());
                 }
 
                 return true;
