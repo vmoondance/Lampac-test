@@ -157,13 +157,16 @@ namespace Online.Controllers
                 {
                     if (externalids_nextCheck > DateTime.Now || externalids_nextCheck == default)
                     {
-                        externalids_nextCheck = DateTime.Now.AddMinutes(5);
-                        var lastWriteTime = IO.File.GetLastWriteTime("data/externalids.json");
-                        if (lastWriteTime != externalids_lastWriteTime)
+                        lock (externalids)
                         {
-                            externalids_lastWriteTime = lastWriteTime;
-                            foreach (var item in JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.File.ReadAllText("data/externalids.json")))
-                                externalids.AddOrUpdate(item.Key, item.Value, (k, v) => item.Value);
+                            externalids_nextCheck = DateTime.Now.AddMinutes(5);
+                            var lastWriteTime = IO.File.GetLastWriteTime("data/externalids.json");
+                            if (lastWriteTime != externalids_lastWriteTime)
+                            {
+                                externalids_lastWriteTime = lastWriteTime;
+                                foreach (var item in JsonConvert.DeserializeObject<Dictionary<string, string>>(IO.File.ReadAllText("data/externalids.json")))
+                                    externalids.AddOrUpdate(item.Key, item.Value, (k, v) => item.Value);
+                            }
                         }
                     }
                 }

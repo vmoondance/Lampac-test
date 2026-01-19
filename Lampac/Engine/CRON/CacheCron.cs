@@ -45,7 +45,7 @@ namespace Lampac.Engine.CRON
                         if (conf.minute == -1 || !Directory.Exists(path))
                             continue;
 
-                        var ex = DateTime.Now.AddMinutes(-conf.minute);
+                        var ex = DateTime.UtcNow.AddMinutes(-conf.minute);
 
                         foreach (string infile in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
                         {
