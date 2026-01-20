@@ -31,6 +31,7 @@ namespace Online.Controllers
 
                 api_url += $"?iframe_url={HttpUtility.UrlEncode(data.iframe_url)}";
                 api_url += $"&kp={CrypTo.unic(6).ToLower()}";
+                api_url += "&domain=cm.vibix.biz&parent_domain=cm.vibix.biz";
 
                 var api_headers = HeadersModel.Init(
                     ("accept", "*/*"),

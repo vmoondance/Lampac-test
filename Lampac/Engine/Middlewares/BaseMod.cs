@@ -1,5 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.Extensions.Primitives;
 using Shared;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.Middlewares
@@ -15,6 +21,17 @@ namespace Lampac.Engine.Middlewares
 
         public Task Invoke(HttpContext context)
         {
+            if (!HttpMethods.IsGet(context.Request.Method) &&
+                !HttpMethods.IsPost(context.Request.Method) &&
+                !HttpMethods.IsOptions(context.Request.Method))
+                return Task.CompletedTask;
+
+            if (!IsValidPath(context.Request.Path.Value))
+            {
+                context.Response.StatusCode = 400; 
+                return context.Response.WriteAsync("400 Bad Request", context.RequestAborted);
+            }
+
             var disble = AppInit.conf.BaseModule.DisableControllers;
 
             if (disble.admin && context.Request.Path.Value.StartsWith("/admin"))
@@ -35,7 +52,124 @@ namespace Lampac.Engine.Middlewares
             if (disble.media && context.Request.Path.Value.StartsWith("/media"))
                 return Task.CompletedTask;
 
+            #region valid query
+            var builder = new QueryBuilder();
+            var dict = new Dictionary<string, StringValues>(StringComparer.Ordinal);
+
+            foreach (var q in context.Request.Query)
+            {
+                if (IsValidQueryName(q.Key))
+                {
+                    string val = ValidQueryValue(q.Key, q.Value);
+                    builder.Add(q.Key, val);
+                    dict[q.Key] = val;
+                }
+            }
+
+            context.Request.QueryString = builder.ToQueryString();
+            context.Request.Query = new QueryCollection(dict);
+            #endregion
+
             return _next(context);
         }
+
+
+        #region IsValid
+        static bool IsValidPath(ReadOnlySpan<char> path)
+        {
+            if (path.IsEmpty)
+                return false;
+
+            foreach (char ch in path)
+            {
+                if (
+                    ch == '/' || ch == '-' || ch == '.' || ch == '_' ||
+                    (ch >= 'A' && ch <= 'Z') ||
+                    (ch >= 'a' && ch <= 'z') ||
+                    (ch >= '0' && ch <= '9')
+                )
+                {
+                    continue;
+                }
+
+                return false;
+            }
+
+            return true;
+        }
+
+        static bool IsValidQueryName(ReadOnlySpan<char> path)
+        {
+            if (path.IsEmpty)
+                return false;
+
+            foreach (char ch in path)
+            {
+                if (
+                    ch == '-' || ch == '_' ||
+                    (ch >= 'A' && ch <= 'Z') ||
+                    (ch >= 'a' && ch <= 'z') ||
+                    (ch >= '0' && ch <= '9')
+                )
+                {
+                    continue;
+                }
+
+                return false;
+            }
+
+            return true;
+        }
+
+        static readonly ThreadLocal<StringBuilder> sbQueryValue = new(() => new StringBuilder(PoolInvk.rentChunk));
+
+        static string ValidQueryValue(string name, StringValues values)
+        {
+            if (values.Count == 0)
+                return string.Empty;
+
+            if (values.Count > 1)
+                return string.Empty;
+
+            ReadOnlySpan<char> value = values[0];
+
+            if (value.IsEmpty)
+                return string.Empty;
+
+            var sb = sbQueryValue.Value;
+            sb.Clear();
+
+            foreach (char ch in value)
+            {
+                if (
+                    ch == '/' || ch == ':' || ch == '?' || ch == '&' || ch == '=' || ch == '.' || // ссылки
+                    ch == '-' || ch == '_' || ch == ' ' || // base
+                    (ch >= '0' && ch <= '9') ||
+                    ch == '@' || // email
+                    char.IsLetter(ch) // ← любые буквы Unicode
+                )
+                {
+                    sb.Append(ch);
+                    continue;
+                }
+
+                if (name is "title" or "original_title")
+                {
+                    if (
+                        char.IsDigit(ch) || // ← символ цифрой Unicode
+                        ch == '\'' || ch == '!' || ch == ',' || ch == '+' || ch == '~' || ch == '"' || ch == ';' ||
+                        ch == '(' || ch == ')' || ch == '[' || ch == ']' || ch == '{' || ch == '}' || ch == '«' || ch == '»' || ch == '“' || ch == '”' ||
+                        ch == '$' || ch == '%' || ch == '^' || ch == '|' || ch == '#'
+                    )
+                    {
+                        sb.Append(ch);
+                        continue;
+                    }
+                }
+            }
+
+            return sb.ToString();
+        }
+        #endregion
     }
 }

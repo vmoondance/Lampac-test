@@ -46,10 +46,11 @@ namespace Lampac.Engine.Middlewares
             bool IsLocalRequest = false;
             string cf_country = null;
             string clientIp = httpContext.Connection.RemoteIpAddress.ToString();
+            bool IsLocalIp = Shared.Engine.Utilities.IPNetwork.IsLocalIp(clientIp);
 
             if (httpContext.Request.Headers.TryGetValue("localrequest", out var _localpasswd))
             {
-                if (!AppInit.conf.BaseModule.allowExternalIpAccessToLocalRequest)
+                if (!IsLocalIp && !AppInit.conf.BaseModule.allowExternalIpAccessToLocalRequest)
                     return httpContext.Response.WriteAsync("allowExternalIpAccessToLocalRequest false", httpContext.RequestAborted);
 
                 if (_localpasswd.ToString() != AppInit.rootPasswd)
@@ -103,7 +104,7 @@ namespace Lampac.Engine.Middlewares
             var req = new RequestModel()
             {
                 IsLocalRequest = IsLocalRequest,
-                IsLocalIp = Shared.Engine.Utilities.IPNetwork.IsLocalIp(clientIp),
+                IsLocalIp = IsLocalIp,
                 IP = clientIp,
                 Country = cf_country,
                 Path = httpContext.Request.Path.Value,
