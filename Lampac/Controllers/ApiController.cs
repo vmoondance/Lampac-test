@@ -809,6 +809,45 @@ namespace Lampac.Controllers
         #endregion
 
 
+        #region nws-client-es5.js
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("nws-client-es5.js")]
+        [Route("js/nws-client-es5.js")]
+        public ActionResult NwsClient()
+        {
+            string memKey = "ApiController:nws-client-es5.js";
+            if (!memoryCache.TryGetValue(memKey, out string source))
+            {
+                source = IO.File.ReadAllText("plugins/nws-client-es5.js");
+                memoryCache.Set(memKey, source);
+            }
+
+            if (source.Contains("{localhost}"))
+                source = source.Replace("{localhost}", host);
+
+            return Content(source, "application/javascript; charset=utf-8");
+        }
+        #endregion
+
+        #region signalr-6.0.25_es5.js
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("signalr-6.0.25_es5.js")]
+        public ActionResult SignalrJs()
+        {
+            string memKey = "ApiController:signalr-6.0.25_es5.js";
+            if (!memoryCache.TryGetValue(memKey, out string source))
+            {
+                source = IO.File.ReadAllText("plugins/signalr-6.0.25_es5.js");
+                memoryCache.Set(memKey, source);
+            }
+
+            return Content(source, "application/javascript; charset=utf-8");
+        }
+        #endregion
+
+
         #region PlayerInner
         [HttpGet]
         [Route("player-inner/{*uri}")]

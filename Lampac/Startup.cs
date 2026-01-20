@@ -417,14 +417,7 @@ namespace Lampac
         #endregion
 
 
-        public void Configure(
-            IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory, IHttpClientFactory httpClientFactory, IHostApplicationLifetime applicationLifetime,
-            IDbContextFactory<SyncUserContext> SyncUserContextFactory,
-            IDbContextFactory<HybridCacheContext> HybridCacheContextFactory,
-            IDbContextFactory<ProxyLinkContext> ProxyLinkContextFactory,
-            IDbContextFactory<SisiContext> SisiContextFactory,
-            IDbContextFactory<ExternalidsContext> ExternalidsContextFactory
-        )
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IMemoryCache memory, IHttpClientFactory httpClientFactory, IHostApplicationLifetime applicationLifetime)
         {
             _app = app;
             memoryCache = memory;
@@ -432,17 +425,19 @@ namespace Lampac
             var mods = init.BaseModule;
             var midd = mods.Middlewares;
 
-            HybridCacheContext.Factory = HybridCacheContextFactory;
-            ProxyLinkContext.Factory = ProxyLinkContextFactory;
+            #region IDbContextFactory
+            HybridCacheContext.Factory = app.ApplicationServices.GetService<IDbContextFactory<HybridCacheContext>>();
+            ProxyLinkContext.Factory = app.ApplicationServices.GetService<IDbContextFactory<ProxyLinkContext>>();
 
             if (mods.Sql.externalids)
-                ExternalidsContext.Factory = ExternalidsContextFactory;
+                ExternalidsContext.Factory = app.ApplicationServices.GetService<IDbContextFactory<ExternalidsContext>>();
 
             if (mods.Sql.sisi)
-                SisiContext.Factory = SisiContextFactory;
+                SisiContext.Factory = app.ApplicationServices.GetService<IDbContextFactory<SisiContext>>();
 
             if (mods.Sql.syncUser)
-                SyncUserContext.Factory = SyncUserContextFactory;
+                SyncUserContext.Factory = app.ApplicationServices.GetService<IDbContextFactory<SyncUserContext>>();
+            #endregion
 
             Shared.Startup.Configure(app, memory);
             HybridCache.Configure(memory);
@@ -560,11 +555,19 @@ namespace Lampac
             #region UseStaticFiles
             if (midd.staticFiles)
             {
+                var contentTypeProvider = new FileExtensionContentTypeProvider();
+
+                if (midd.staticFilesMappings != null)
+                {
+                    foreach (var mapping in midd.staticFilesMappings)
+                        contentTypeProvider.Mappings[mapping.Key] = mapping.Value;
+                }
+
                 app.UseStaticFiles(new StaticFileOptions
                 {
                     ServeUnknownFileTypes = midd.unknownStaticFiles,
                     DefaultContentType = "application/octet-stream",
-                    ContentTypeProvider = new FileExtensionContentTypeProvider(midd.staticFilesMappings)
+                    ContentTypeProvider = contentTypeProvider
                 });
             }
             #endregion
