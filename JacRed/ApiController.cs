@@ -9,6 +9,7 @@ namespace JacRed.Controllers
     public class ApiController : JacBaseController
     {
         #region Conf
+        [HttpGet]
         [Route("api/v1.0/conf")]
         public JsonResult JacConf(string apikey)
         {
@@ -20,6 +21,7 @@ namespace JacRed.Controllers
         #endregion
 
         #region Indexers
+        [HttpGet]
         [Route("/api/v2.0/indexers/{status}/results")]
         async public Task<ActionResult> Indexers(string apikey, string query, string title, string title_original, int year, Dictionary<string, string> category, int is_serial = -1)
         {
@@ -156,6 +158,7 @@ namespace JacRed.Controllers
         #endregion
 
         #region Api
+        [HttpGet]
         [Route("/api/v1.0/torrents")]
         async public Task<ActionResult> Api(string apikey, string search, string altname, bool exact, string type, string sort, string tracker, string voice, string videotype, long relased, long quality, long season)
         {

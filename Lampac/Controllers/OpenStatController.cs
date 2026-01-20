@@ -31,6 +31,7 @@ namespace Lampac.Controllers
         }
 
         #region browser/context
+        [HttpGet]
         [AllowAnonymous]
         [Route("/stats/browser/context")]
         public ActionResult BrowserContext()
@@ -63,6 +64,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region request
+        [HttpGet]
         [AllowAnonymous]
         [Route("/stats/request")]
         public ActionResult Requests()
@@ -99,7 +101,7 @@ namespace Lampac.Controllers
                 req_min,
                 req_hour,
                 tcpConnections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length,
-                nws_online = nws.CountConnection,
+                nws_online = NativeWebSocket.CountConnection,
                 soks_online = soks.connections,
                 http_active = RequestStatisticsTracker.ActiveHttpRequests,
                 http_response_ms = httpResponseMs
@@ -108,6 +110,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region rch
+        [HttpGet]
         [AllowAnonymous]
         [Route("/stats/rch")]
         public ActionResult Rhc()
@@ -139,6 +142,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region TempDb
+        [HttpGet]
         [AllowAnonymous]
         [Route("/stats/tempdb")]
         public ActionResult TempDb()

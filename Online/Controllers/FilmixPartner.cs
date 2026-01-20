@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Shared.Models.Online.Filmix;
 using Shared.Models.Online.Settings;
@@ -204,6 +205,7 @@ namespace Online.Controllers
 
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("lite/fxapi/lowlevel/{*uri}")]
         async public Task<ActionResult> LowlevelApi(string uri)
         {

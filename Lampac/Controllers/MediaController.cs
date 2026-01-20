@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Shared;
 using Shared.Engine;
@@ -16,6 +17,7 @@ namespace Lampac.Controllers
     {
         #region Routes
         [HttpGet]
+        [AllowAnonymous]
         [Route("/media/rsize/{token}/{width}/{height}/{*url}")]
         public ActionResult Get(string token, int width, int height, string url)
         {
@@ -29,6 +31,7 @@ namespace Lampac.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("/media/{type}/{token}/{*url}")]
         public ActionResult Get(string type, string token, string url)
         {
@@ -40,6 +43,7 @@ namespace Lampac.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("/media")]
         public ActionResult Get(string url, string headers, [FromQuery] MediaRequestBase request)
         {
@@ -50,6 +54,7 @@ namespace Lampac.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         [Route("/media")]
         public ActionResult Post([FromBody] MediaRequest request)
         {

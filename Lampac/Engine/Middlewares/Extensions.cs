@@ -4,6 +4,11 @@ namespace Lampac.Engine.Middlewares
 {
     public static class Extensions
     {
+        public static IApplicationBuilder UseBaseMod(this IApplicationBuilder builder)
+        {
+            return builder.UseMiddleware<BaseMod>();
+        }
+
         public static IApplicationBuilder UseWAF(this IApplicationBuilder builder)
         {
             return builder.UseMiddleware<WAF>();

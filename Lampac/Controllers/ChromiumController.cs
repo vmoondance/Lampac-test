@@ -6,11 +6,13 @@ namespace Lampac.Controllers
 {
     public class ChromiumController : BaseController
     {
+        [HttpGet]
         [AllowAnonymous]
         [Route("/api/chromium/ping")]
         public string Ping() => "pong";
 
 
+        [HttpGet]
         [AllowAnonymous]
         [Route("/api/chromium/iframe")]
         public ActionResult RenderIframe(string src)

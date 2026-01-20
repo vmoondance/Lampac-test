@@ -91,8 +91,11 @@ namespace Lampac
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
+            var init = AppInit.conf;
+            var mods = init.BaseModule;
+
             #region GC
-            var gc = AppInit.conf.GC;
+            var gc = init.GC;
             if (gc != null && gc.enable)
             {
                 if (gc.Concurrent.HasValue)
@@ -109,24 +112,33 @@ namespace Lampac
             }
             #endregion
 
+            #region Http.onlog
             Http.onlog += (e, log) =>
             {
-                nws.SendLog(log, "http");
-                soks.SendLog(log, "http");
-            };
+                if (mods.nws)
+                    NativeWebSocket.SendLog(log, "http");
 
+                if (mods.ws)
+                    soks.SendLog(log, "http");
+            };
+            #endregion
+
+            #region RchClient
             RchClient.hub += (e, req) =>
             {
-                _ = nws.SendRchRequestAsync(req.connectionId, req.rchId, req.url, req.data, req.headers, req.returnHeaders).ConfigureAwait(false);
-                _ = soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers, req.returnHeaders)?.ConfigureAwait(false);
-            };
+                if (mods.nws)
+                    _ = NativeWebSocket.SendRchRequestAsync(req.connectionId, req.rchId, req.url, req.data, req.headers, req.returnHeaders).ConfigureAwait(false);
 
-            string init = JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
+                if (mods.ws)
+                    _ = soks.hubClients?.Client(req.connectionId)?.SendAsync("RchClient", req.rchId, req.url, req.data, req.headers, req.returnHeaders)?.ConfigureAwait(false);
+            };
+            #endregion
+
+            Console.WriteLine(JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented, new JsonSerializerSettings()
             {
                 NullValueHandling = NullValueHandling.Ignore
-            });
+            }));
 
-            Console.WriteLine(init + "\n");
             File.WriteAllText("current.conf", JsonConvert.SerializeObject(AppInit.conf, Formatting.Indented));
 
             ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
@@ -154,12 +166,20 @@ namespace Lampac
             #endregion
 
             #region SQL
-            ExternalidsContext.Initialization();
             HybridCacheContext.Initialization();
-            SisiContext.Initialization();
             ProxyLinkContext.Initialization();
-            PlaywrightContext.Initialization();
-            SyncUserContext.Initialization();
+
+            if (init.chromium.enable || init.firefox.enable)
+                PlaywrightContext.Initialization();
+
+            if (mods.Sql.externalids)
+                ExternalidsContext.Initialization();
+
+            if (mods.Sql.sisi)
+                SisiContext.Initialization();
+
+            if (mods.Sql.syncUser)
+                SyncUserContext.Initialization();
             #endregion
 
             #region migration
@@ -168,7 +188,7 @@ namespace Lampac
                 Console.WriteLine("run migration");
 
                 #region cache/storage
-                if (Directory.Exists("cache/storage"))
+                if (mods.Sql.syncUser && Directory.Exists("cache/storage"))
                 {
                     string sourceDir = "cache/storage";
                     string targetDir = "database/storage";
@@ -197,7 +217,7 @@ namespace Lampac
                 #endregion
 
                 #region cache/bookmarks/sisi
-                if (Directory.Exists("cache/bookmarks/sisi"))
+                if (mods.Sql.sisi && Directory.Exists("cache/bookmarks/sisi"))
                 {
                     using (var sqlDb = new SisiContext())
                     {
@@ -258,19 +278,19 @@ namespace Lampac
             #endregion
 
             #region Playwright
-            if (AppInit.conf.chromium.enable || AppInit.conf.firefox.enable)
+            if (init.chromium.enable || init.firefox.enable)
             {
-                if (!AppInit.conf.multiaccess)
+                if (!init.multiaccess)
                     Environment.SetEnvironmentVariable("NODE_OPTIONS", "--max-old-space-size=256");
 
                 ThreadPool.QueueUserWorkItem(async _ =>
                 {
                     if (await PlaywrightBase.InitializationAsync())
                     {
-                        if (AppInit.conf.chromium.enable)
+                        if (init.chromium.enable)
                             _ = Chromium.CreateAsync().ConfigureAwait(false);
 
-                        if (AppInit.conf.firefox.enable)
+                        if (init.firefox.enable)
                             _ = Firefox.CreateAsync().ConfigureAwait(false);
                     }
                 });
@@ -355,10 +375,16 @@ namespace Lampac
             #endregion
 
             CacheCron.Run();
-            KurwaCron.Run();
+
+            if (mods.kurwaCron)
+                KurwaCron.Run();
+
             PluginsCron.Run();
             SyncCron.Run();
-            TrackersCron.Run();
+
+            if (AppInit.modules?.FirstOrDefault(i => i.dll == "DLNA.dll" && i.enable) != null)
+                TrackersCron.Run();
+
             LampaCron.Run();
 
             _usersTimer = new Timer(UpdateUsersDb, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));

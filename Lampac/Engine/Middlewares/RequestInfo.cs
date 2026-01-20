@@ -49,6 +49,9 @@ namespace Lampac.Engine.Middlewares
 
             if (httpContext.Request.Headers.TryGetValue("localrequest", out var _localpasswd))
             {
+                if (!AppInit.conf.BaseModule.allowExternalIpAccessToLocalRequest)
+                    return httpContext.Response.WriteAsync("allowExternalIpAccessToLocalRequest false", httpContext.RequestAborted);
+
                 if (_localpasswd.ToString() != AppInit.rootPasswd)
                     return httpContext.Response.WriteAsync("error passwd", httpContext.RequestAborted);
 
@@ -109,17 +112,17 @@ namespace Lampac.Engine.Middlewares
             };
 
             #region Weblog Request
-            if (!IsLocalRequest && !IsWsRequest)
+            if (!IsLocalRequest && !IsWsRequest && AppInit.conf.weblog.enable)
             {
                 if (AppInit.conf.WebSocket.type == "signalr")
                 {
-                    if (soks.weblog_clients.Count > 0)
+                    if (AppInit.conf.BaseModule.ws && soks.weblog_clients.Count > 0)
                         soks.SendLog(builderLog(httpContext, req), "request");
                 }
                 else
                 {
-                    if (nws.weblog_clients.Count > 0)
-                        nws.SendLog(builderLog(httpContext, req), "request");
+                    if (AppInit.conf.BaseModule.nws && NativeWebSocket.weblog_clients.Count > 0)
+                        NativeWebSocket.SendLog(builderLog(httpContext, req), "request");
                 }
             }
             #endregion

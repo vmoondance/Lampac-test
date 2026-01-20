@@ -11,7 +11,6 @@ namespace Lampac.Controllers
     public class RchBaseApi : BaseController
     {
         [HttpGet]
-        [AllowAnonymous]
         [Route("rch/check/connected")]
         public ActionResult СheckСonnected()
         {

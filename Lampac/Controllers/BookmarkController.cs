@@ -1,4 +1,5 @@
 using Lampac.Engine;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,11 +25,12 @@ namespace Lampac.Controllers
     {
         #region bookmark.js
         [HttpGet]
+        [AllowAnonymous]
         [Route("bookmark.js")]
         [Route("bookmark/js/{token}")]
         public ActionResult BookmarkJS(string token)
         {
-            if (!AppInit.conf.storage.enable)
+            if (!AppInit.conf.sync_user.enable)
                 return Content(string.Empty, "application/javascript; charset=utf-8");
 
             var sb = new StringBuilder(FileCache.ReadAllText("plugins/bookmark.js"));
@@ -265,7 +267,7 @@ namespace Lampac.Controllers
 
                 if (IsDbInitialization)
                 {
-                    _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", JsonConvertPool.SerializeObject(new
+                    _ = NativeWebSocket.SendEvents(connectionId, requestInfo.user_uid, "bookmark", JsonConvertPool.SerializeObject(new
                     {
                         type = "set",
                         data = token,
@@ -334,7 +336,7 @@ namespace Lampac.Controllers
                                 data = readBody.token
                             });
 
-                            _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
+                            _ = NativeWebSocket.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
                         }
                     }
                 }
@@ -408,7 +410,7 @@ namespace Lampac.Controllers
                                 data = readBody.token
                             });
 
-                            _ = nws.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
+                            _ = NativeWebSocket.SendEvents(connectionId, requestInfo.user_uid, "bookmark", edata).ConfigureAwait(false);
                         }
                     }
                 }

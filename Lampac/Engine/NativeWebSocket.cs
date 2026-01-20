@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 
 namespace Lampac.Engine
 {
-    public class nws : INws
+    public class NativeWebSocket : INws
     {
         #region fields
         public static IMemoryCache memoryCache;

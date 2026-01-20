@@ -125,6 +125,7 @@ namespace SISI
         #endregion
 
 
+        [HttpGet]
         [Route("sisi")]
         async public ValueTask<JsonResult> Index(string rchtype, string account_email, string uid, string token, bool spder)
         {

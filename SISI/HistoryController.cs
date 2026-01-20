@@ -9,6 +9,7 @@ namespace SISI
 {
     public class HistoryController : BaseController
     {
+        [HttpGet]
         [Route("sisi/historys")]
         async public Task<ActionResult> List(int pg = 1, int pageSize = 36)
         {
@@ -129,6 +130,7 @@ namespace SISI
         }
 
 
+        [HttpGet]
         [Route("sisi/history/remove")]
         async public Task<ActionResult> Remove(string id)
         {

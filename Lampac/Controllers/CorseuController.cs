@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
@@ -25,6 +26,7 @@ namespace Lampac.Controllers
     {
         #region Routes
         [HttpGet]
+        [AllowAnonymous]
         [Route("/corseu/{token}/{*url}")]
         public Task<IActionResult> Get(string token, string url)
         {
@@ -36,6 +38,7 @@ namespace Lampac.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("/corseu")]
         public Task<IActionResult> Get(string auth_token, string method, string url, string data, string headers, string browser, int? httpversion, int? timeout, string encoding, bool? defaultHeaders, bool? autoredirect, string proxy, string proxy_name, bool? headersOnly)
         {
@@ -59,6 +62,7 @@ namespace Lampac.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         [Route("/corseu")]
         async public Task<IActionResult> Post()
         {
@@ -84,6 +88,7 @@ namespace Lampac.Controllers
             }
         }
         #endregion
+
 
         #region Execute
         async Task<IActionResult> ExecuteAsync(CorseuRequest model)

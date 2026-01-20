@@ -13,6 +13,8 @@ namespace Lampac.Engine.Middlewares
 {
     public class Accsdb
     {
+        static readonly string jacpattern = "^/(api/v2.0/indexers|api/v1.0/|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria|anifilm|toloka|lostfilm|bigfangroup|mazepa)";
+
         static Accsdb() 
         {
             Directory.CreateDirectory("cache/logs/accsdb");
@@ -80,8 +82,6 @@ namespace Lampac.Engine.Middlewares
                 return _next(httpContext);
 
             #region jacred
-            string jacpattern = "^/(api/v2.0/indexers|api/v1.0/|toloka|rutracker|rutor|torrentby|nnmclub|kinozal|bitru|selezen|megapeer|animelayer|anilibria|anifilm|toloka|lostfilm|bigfangroup|mazepa)";
-
             if (!string.IsNullOrEmpty(AppInit.conf.apikey))
             {
                 if (Regex.IsMatch(httpContext.Request.Path.Value, jacpattern))

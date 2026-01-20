@@ -147,6 +147,7 @@ namespace Online.Controllers
 
         static DateTime externalids_lastWriteTime = default, externalids_nextCheck = default;
 
+        [HttpGet]
         [Route("externalids")]
         async public ValueTask<ActionResult> Externalids(string id, string imdb_id, long kinopoisk_id, int serial)
         {
@@ -401,6 +402,7 @@ namespace Online.Controllers
         #endregion
 
         #region WithSearch
+        [HttpGet]
         [AllowAnonymous]
         [Route("lite/withsearch")]
         public ActionResult WithSearch()
@@ -413,6 +415,7 @@ namespace Online.Controllers
         #endregion
 
         #region spider
+        [HttpGet]
         [Route("lite/spider")]
         [Route("lite/spider/anime")]
         async public Task<ActionResult> Spider(string title)

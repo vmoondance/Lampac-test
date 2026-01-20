@@ -632,6 +632,7 @@ namespace DLNA.Controllers
         #endregion
 
         #region Stream
+        [HttpGet]
         [Route("dlna/stream")]
         public ActionResult Stream(string path)
         {

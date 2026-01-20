@@ -30,6 +30,7 @@ namespace Lampac.Controllers
         }
         #endregion
 
+        [HttpGet]
         [Route("/timecode/all")]
         async public Task<ActionResult> Get(string card_id)
         {

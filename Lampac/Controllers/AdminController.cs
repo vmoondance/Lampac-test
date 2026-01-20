@@ -18,8 +18,9 @@ namespace Lampac.Controllers
     public class AdminController : BaseController
     {
         #region admin / auth
-        [Route("admin")]
-        [Route("admin/auth")]
+        [HttpGet]
+        [Route("/admin")]
+        [Route("/admin/auth")]
         public ActionResult Authorization([FromForm]string parol)
         {
 			if (AppInit.rootPasswd == "termux")
@@ -123,7 +124,8 @@ namespace Lampac.Controllers
 
 
         #region init
-        [Route("admin/init/save")]
+        [HttpPost]
+        [Route("/admin/init/save")]
         public ActionResult InitSave([FromForm]string json)
         {
 			try
@@ -153,7 +155,8 @@ namespace Lampac.Controllers
             return Json(new { success = true });
         }
 
-        [Route("admin/init/custom")]
+        [HttpGet]
+        [Route("/admin/init/custom")]
         public ActionResult InitCustom()
         {
 			string json = IO.File.Exists("init.conf") ? IO.File.ReadAllText("init.conf") : null;
@@ -164,19 +167,22 @@ namespace Lampac.Controllers
             return ContentTo(JsonConvert.SerializeObject(ob));
         }
 
-        [Route("admin/init/current")]
+        [HttpGet]
+        [Route("/admin/init/current")]
         public ActionResult InitCurrent()
         {
             return Content(JsonConvert.SerializeObject(AppInit.conf), contentType: "application/json; charset=utf-8");
         }
 
-        [Route("admin/init/default")]
+        [HttpGet]
+        [Route("/admin/init/default")]
         public ActionResult InitDefault()
         {
             return Content(JsonConvert.SerializeObject(new AppInit()), contentType: "application/json; charset=utf-8");
         }
 
-        [Route("admin/init/example")]
+        [HttpGet]
+        [Route("/admin/init/example")]
         public ActionResult InitExample()
         {
             return Content(IO.File.Exists("example.conf") ? IO.File.ReadAllText("example.conf") : string.Empty);
@@ -184,7 +190,8 @@ namespace Lampac.Controllers
         #endregion
 
         #region sync/init
-        [Route("admin/sync/init")]
+        [HttpGet]
+        [Route("/admin/sync/init")]
         public ActionResult Synchtml()
         {
             string html = @"
@@ -283,7 +290,8 @@ namespace Lampac.Controllers
         }
 
 
-        [Route("admin/sync/init/save")]
+        [HttpPost]
+        [Route("/admin/sync/init/save")]
         public ActionResult SyncSave([FromForm] string json)
         {
             try
@@ -303,7 +311,9 @@ namespace Lampac.Controllers
         #endregion
 
         #region manifest
-        [Route("admin/manifest/install")]
+        [HttpGet]
+        [HttpPost]
+        [Route("/admin/manifest/install")]
         public Task ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string catalog, string merch, string eng)
         {
             HttpContext.Response.ContentType = "text/html; charset=utf-8";

@@ -60,6 +60,9 @@ namespace Lampac
         #region ConfigureServices
         public void ConfigureServices(IServiceCollection services)
         {
+            var init = AppInit.conf;
+            var mods = init.BaseModule;
+
             serviceCollection = services;
 
             #region IHttpClientFactory
@@ -177,7 +180,7 @@ namespace Lampac
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            if (AppInit.conf.listen.compression)
+            if (init.listen.compression)
             {
                 services.AddResponseCompression(options =>
                 {
@@ -190,22 +193,31 @@ namespace Lampac
                 o.TrackStatistics = AppInit.conf.openstat.enable;
             });
 
-            services.AddSignalR(o =>
+            if (mods.ws)
             {
-                o.EnableDetailedErrors = true;
-                o.MaximumParallelInvocationsPerClient = 2;
-                o.MaximumReceiveMessageSize = 1024 * 1024 * 10; // 10MB
-                o.StreamBufferCapacity = 1024 * 1024;           // 1MB
-            });
+                services.AddSignalR(o =>
+                {
+                    o.EnableDetailedErrors = true;
+                    o.MaximumParallelInvocationsPerClient = 2;
+                    o.MaximumReceiveMessageSize = 1024 * 1024 * 10; // 10MB
+                    o.StreamBufferCapacity = 1024 * 1024;           // 1MB
+                });
+            }
 
             services.AddSingleton<IActionDescriptorChangeProvider>(DynamicActionDescriptorChangeProvider.Instance);
             services.AddSingleton(DynamicActionDescriptorChangeProvider.Instance);
 
-            services.AddDbContextFactory<SyncUserContext>(SyncUserContext.ConfiguringDbBuilder);
             services.AddDbContextFactory<HybridCacheContext>(HybridCacheContext.ConfiguringDbBuilder);
             services.AddDbContextFactory<ProxyLinkContext>(ProxyLinkContext.ConfiguringDbBuilder);
-            services.AddDbContextFactory<SisiContext>(SisiContext.ConfiguringDbBuilder);
-            services.AddDbContextFactory<ExternalidsContext>(ExternalidsContext.ConfiguringDbBuilder);
+
+            if (mods.Sql.syncUser)
+                services.AddDbContextFactory<SyncUserContext>(SyncUserContext.ConfiguringDbBuilder);
+
+            if (mods.Sql.sisi)
+                services.AddDbContextFactory<SisiContext>(SisiContext.ConfiguringDbBuilder);
+
+            if (mods.Sql.externalids)
+                services.AddDbContextFactory<ExternalidsContext>(ExternalidsContext.ConfiguringDbBuilder);
 
             IMvcBuilder mvcBuilder = services.AddControllersWithViews();
 
@@ -268,8 +280,8 @@ namespace Lampac
                     }
                 };
 
-                var mods = JsonConvert.DeserializeObject<List<RootModule>>(File.ReadAllText("module/manifest.json"), jss);
-                if (mods == null)
+                var modules = JsonConvert.DeserializeObject<List<RootModule>>(File.ReadAllText("module/manifest.json"), jss);
+                if (modules == null)
                     return;
 
                 #region CompilationMod
@@ -371,7 +383,7 @@ namespace Lampac
                 }
                 #endregion
 
-                foreach (var mod in mods)
+                foreach (var mod in modules)
                     CompilationMod(mod);
 
                 foreach (string folderMod in Directory.GetDirectories("module/"))
@@ -416,21 +428,36 @@ namespace Lampac
         {
             _app = app;
             memoryCache = memory;
+            var init = AppInit.conf;
+            var mods = init.BaseModule;
+            var midd = mods.Middlewares;
 
-            SyncUserContext.Factory = SyncUserContextFactory;
             HybridCacheContext.Factory = HybridCacheContextFactory;
             ProxyLinkContext.Factory = ProxyLinkContextFactory;
-            SisiContext.Factory = SisiContextFactory;
-            ExternalidsContext.Factory = ExternalidsContextFactory;
+
+            if (mods.Sql.externalids)
+                ExternalidsContext.Factory = ExternalidsContextFactory;
+
+            if (mods.Sql.sisi)
+                SisiContext.Factory = SisiContextFactory;
+
+            if (mods.Sql.syncUser)
+                SyncUserContext.Factory = SyncUserContextFactory;
 
             Shared.Startup.Configure(app, memory);
             HybridCache.Configure(memory);
             ProxyManager.Configure(memory);
 
             Http.httpClientFactory = httpClientFactory;
-            nws.memoryCache = memoryCache;
-            Http.nws = new nws();
-            Http.ws = new soks();
+
+            if (mods.nws)
+            {
+                NativeWebSocket.memoryCache = memoryCache;
+                Http.nws = new NativeWebSocket();
+            }
+
+            if (mods.ws)
+                Http.ws = new soks();
 
             #region modules loaded
             if (AppInit.modules != null)
@@ -455,15 +482,17 @@ namespace Lampac
             }
             #endregion
 
-            if (!AppInit.conf.multiaccess || AppInit.conf.useDeveloperExceptionPage)
+            app.UseBaseMod();
+
+            if (!init.multiaccess || init.useDeveloperExceptionPage)
                 app.UseDeveloperExceptionPage();
 
             applicationLifetime.ApplicationStopping.Register(OnShutdown);
 
             applicationLifetime.ApplicationStarted.Register(() =>
             {
-                if (!string.IsNullOrEmpty(AppInit.conf.listen.sock))
-                    _ = Bash.Run($"while [ ! -S /var/run/{AppInit.conf.listen.sock}.sock ]; do sleep 1; done && chmod 666 /var/run/{AppInit.conf.listen.sock}.sock").ConfigureAwait(false);
+                if (!string.IsNullOrEmpty(init.listen.sock))
+                    _ = Bash.Run($"while [ ! -S /var/run/{init.listen.sock}.sock ]; do sleep 1; done && chmod 666 /var/run/{init.listen.sock}.sock").ConfigureAwait(false);
             });
 
             #region UseForwardedHeaders
@@ -473,9 +502,9 @@ namespace Lampac
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             };
 
-            if (AppInit.conf.KnownProxies != null && AppInit.conf.KnownProxies.Count > 0)
+            if (init.KnownProxies != null && init.KnownProxies.Count > 0)
             {
-                foreach (var k in AppInit.conf.KnownProxies)
+                foreach (var k in init.KnownProxies)
                     forwarded.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse(k.ip), k.prefixLength));
             }
 
@@ -485,123 +514,99 @@ namespace Lampac
             app.UseModHeaders();
             app.UseRequestInfo();
 
-            app.Map("/nws", nwsApp =>
+            if (mods.nws)
             {
-                nwsApp.UseWAF();
-                nwsApp.UseWebSockets();
-                nwsApp.Run(nws.HandleWebSocketAsync);
-            });
-
-            app.Map("/ws", wsApp =>
-            {
-                wsApp.UseWAF();
-                wsApp.UseRouting();
-                wsApp.UseEndpoints(endpoints =>
+                app.Map("/nws", nwsApp =>
                 {
-                    endpoints.MapHub<soks>("");
+                    nwsApp.UseWAF();
+                    nwsApp.UseWebSockets();
+                    nwsApp.Run(NativeWebSocket.HandleWebSocketAsync);
                 });
-            });
+            }
 
-            app.UseStaticache();
+            if (mods.ws)
+            {
+                app.Map("/ws", wsApp =>
+                {
+                    wsApp.UseWAF();
+                    wsApp.UseRouting();
+                    wsApp.UseEndpoints(endpoints =>
+                    {
+                        endpoints.MapHub<soks>("");
+                    });
+                });
+            }
+
+            if (midd.staticache)
+                app.UseStaticache();
 
             app.UseRouting();
 
-            if (AppInit.conf.listen.compression)
+            if (init.listen.compression)
                 app.UseResponseCompression();
 
-            app.UseRequestStatistics();
+            if (midd.statistics)
+                app.UseRequestStatistics();
+
             app.UseAnonymousRequest();
 
             app.UseAlwaysRjson();
-            app.UseModule(first: true);
+
+            if (midd.module)
+                app.UseModule(first: true);
+
             app.UseOverrideResponse(first: true);
 
             #region UseStaticFiles
-            app.UseStaticFiles(new StaticFileOptions
+            if (midd.staticFiles)
             {
-                ServeUnknownFileTypes = true,
-                DefaultContentType = "application/octet-stream",
-                ContentTypeProvider = new FileExtensionContentTypeProvider()
+                app.UseStaticFiles(new StaticFileOptions
                 {
-                    Mappings =
-                    {
-                        [".m4s"]  = "video/mp4",
-                        [".ts"]   = "video/mp2t",
-                        [".mp4"]  = "video/mp4",
-                        [".mkv"]  = "video/x-matroska",
-                        [".m3u"]  = "application/x-mpegURL",
-                        [".m3u8"] = "application/vnd.apple.mpegurl",
-                        [".webm"] = "video/webm",
-                        [".mov"]  = "video/quicktime",
-                        [".avi"]  = "video/x-msvideo",
-                        [".wmv"]  = "video/x-ms-wmv",
-                        [".flv"]  = "video/x-flv",
-                        [".ogv"]  = "video/ogg",
-                        [".m2ts"] = "video/MP2T",
-                        [".vob"]  = "video/x-ms-vob",
-
-                        [".apk"]  = "application/vnd.android.package-archive",
-                        [".aab"]  = "application/vnd.android.appbundle",
-                        [".xapk"]  = "application/vnd.android.package-archive",
-                        [".apkm"]  = "application/vnd.android.package-archive",
-                        [".obb"]  = "application/octet-stream",
-
-                        [".exe"]  = "application/vnd.microsoft.portable-executable",
-                        [".msi"]  = "application/x-msi",
-                        [".bat"]  = "application/x-msdownload",
-                        [".cmd"]  = "application/x-msdownload",
-                        [".msix"]        = "application/msix",
-                        [".msixbundle"]  = "application/msixbundle",
-                        [".appx"]        = "application/appx",
-                        [".appxbundle"]  = "application/appxbundle",
-
-                        [".deb"]  = "application/vnd.debian.binary-package",
-                        [".rpm"]  = "application/x-rpm",
-                        [".sh"]   = "application/x-sh",
-                        [".bin"]  = "application/octet-stream",
-                        [".run"]  = "application/x-msdownload",
-                        [".appimage"] = "application/octet-stream",
-
-                        [".pkg"]  = "application/octet-stream",
-                        [".dmg"]  = "application/x-apple-diskimage",
-
-                        [".zip"] = "application/zip",
-                        [".rar"] = "application/vnd.rar",
-                        [".7z"]  = "application/x-7z-compressed",
-                        [".gz"]  = "application/gzip",
-                        [".tar"] = "application/x-tar",
-                        [".tgz"] = "application/gzip",
-
-                        [".iso"] = "application/x-iso9660-image"
-                    }
-                }
-            });
+                    ServeUnknownFileTypes = midd.unknownStaticFiles,
+                    DefaultContentType = "application/octet-stream",
+                    ContentTypeProvider = new FileExtensionContentTypeProvider(midd.staticFilesMappings)
+                });
+            }
             #endregion
 
             app.UseWAF();
             app.UseAccsdb();
 
-            app.MapWhen(context => context.Request.Path.Value.StartsWith("/proxy/") || context.Request.Path.Value.StartsWith("/proxy-dash/"), proxyApp =>
+            if (midd.proxy)
             {
-                proxyApp.UseProxyAPI();
-            });
+                app.MapWhen(context => context.Request.Path.Value.StartsWith("/proxy/") || context.Request.Path.Value.StartsWith("/proxy-dash/"), proxyApp =>
+                {
+                    proxyApp.UseProxyAPI();
+                });
+            }
 
-            app.MapWhen(context => context.Request.Path.Value.StartsWith("/proxyimg"), proxyApp =>
+            if (midd.proxyimg)
             {
-                proxyApp.UseProxyIMG();
-            });
+                app.MapWhen(context => context.Request.Path.Value.StartsWith("/proxyimg"), proxyApp =>
+                {
+                    proxyApp.UseProxyIMG();
+                });
+            }
 
-            app.MapWhen(context => context.Request.Path.Value.StartsWith("/cub/"), proxyApp =>
+            if (midd.proxycub)
             {
-                proxyApp.UseProxyCub();
-            });
+                app.MapWhen(context => context.Request.Path.Value.StartsWith("/cub/"), proxyApp =>
+                {
+                    proxyApp.UseProxyCub();
+                });
+            }
 
-            app.MapWhen(context => context.Request.Path.Value.StartsWith("/tmdb/"), proxyApp =>
+            if (midd.proxytmdb)
             {
-                proxyApp.UseProxyTmdb();
-            });
+                app.MapWhen(context => context.Request.Path.Value.StartsWith("/tmdb/"), proxyApp =>
+                {
+                    proxyApp.UseProxyTmdb();
+                });
+            }
 
-            app.UseModule(first: false);
+            if (midd.module)
+                app.UseModule(first: false);
+
             app.UseOverrideResponse(first: false);
 
             app.UseEndpoints(endpoints =>
@@ -622,7 +627,7 @@ namespace Lampac
 
             Chromium.FullDispose();
             Firefox.FullDispose();
-            nws.FullDispose();
+            NativeWebSocket.FullDispose();
             soks.FullDispose();
 
             DisposeModule(null);
@@ -784,7 +789,7 @@ namespace Lampac
                         {
                             path = $"module/{mod.dll}",
                             soks = new soks(),
-                            nws = new nws(),
+                            nws = new NativeWebSocket(),
                             memoryCache = memoryCache,
                             configuration = Configuration,
                             services = serviceCollection,

@@ -57,6 +57,7 @@ namespace TorrServer.Controllers
 
 
         #region Main
+        [HttpGet]
         [Route("ts")]
         [Route("ts/static/js/{suffix}")]
         async public Task<ActionResult> Main()
@@ -90,6 +91,8 @@ namespace TorrServer.Controllers
         #endregion
 
         #region TorAPI
+        [HttpGet]
+        [HttpPost]
         [Route("ts/{*suffix}")]
         async public Task Index()
         {

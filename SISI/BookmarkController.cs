@@ -10,6 +10,7 @@ namespace SISI
 {
     public class BookmarkController : BaseController
     {
+        [HttpGet]
         [Route("sisi/bookmarks")]
         async public Task<ActionResult> List(string search, string model, int pg = 1, int pageSize = 36)
         {
@@ -214,6 +215,8 @@ namespace SISI
         }
 
 
+        [HttpGet]
+        [HttpPost]
         [Route("sisi/bookmark/remove")]
         async public Task<ActionResult> Remove(string id)
         {

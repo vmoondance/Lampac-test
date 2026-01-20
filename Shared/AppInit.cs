@@ -375,6 +375,33 @@ namespace Shared
 
         public string corsehost { get; set; } = "https://cors.apn.monster";
 
+        public BaseModule BaseModule { get; set; } = new BaseModule()
+        {
+            nws = true,
+            ws = true,
+            kurwaCron = true,
+            allowExternalIpAccessToLocalRequest = false,
+            DisableControllers = new BaseModuleDisableControllers(),
+            Middlewares = new BaseModuleMiddlewares() 
+            {
+                proxy = true,
+                proxyimg = true,
+                proxytmdb = true,
+                proxycub = true,
+                staticFiles = true,
+                unknownStaticFiles = true,
+                statistics = true,
+                staticache = true,
+                module = true
+            },
+            Sql = new BaseModuleSql() 
+            {
+                externalids = true,
+                sisi = true,
+                syncUser = true
+            }
+        };
+
         public CorseuConf corseu { get; set; } = new CorseuConf();
 
         public MediaApiConf media { get; set; } = new MediaApiConf();

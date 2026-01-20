@@ -25,6 +25,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region Get
+        [HttpGet]
         [Route("/storage/get")]
         async public Task<ActionResult> Get(string path, string pathfile, bool responseInfo)
         {
@@ -134,14 +135,14 @@ namespace Lampac.Controllers
                 {
                     var json = JsonConvert.DeserializeObject<JObject>(CrypTo.DecodeBase64(events));
                     _ = soks.SendEvents(json.Value<string>("connectionId"), requestInfo.user_uid, json.Value<string>("name"), json.Value<string>("data")).ConfigureAwait(false);
-                    _ = nws.SendEvents(json.Value<string>("connectionId"), requestInfo.user_uid, json.Value<string>("name"), json.Value<string>("data")).ConfigureAwait(false);
+                    _ = NativeWebSocket.SendEvents(json.Value<string>("connectionId"), requestInfo.user_uid, json.Value<string>("name"), json.Value<string>("data")).ConfigureAwait(false);
                 }
                 catch { }
             }
             else
             {
                 string edata = JsonConvertPool.SerializeObject(new { path, pathfile });
-                _ = nws.SendEvents(connectionId, requestInfo.user_uid, "storage", edata).ConfigureAwait(false);
+                _ = NativeWebSocket.SendEvents(connectionId, requestInfo.user_uid, "storage", edata).ConfigureAwait(false);
             }
             #endregion
 

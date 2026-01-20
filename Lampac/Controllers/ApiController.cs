@@ -26,6 +26,7 @@ namespace Lampac.Controllers
     public class ApiController : BaseController
     {
         #region Index
+        [HttpGet]
         [AllowAnonymous]
         [Route("/")]
         public ActionResult Index()
@@ -51,6 +52,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region Extensions
+        [HttpGet]
         [AllowAnonymous]
         [Route("/extensions")]
         public ActionResult Extensions()
@@ -60,14 +62,17 @@ namespace Lampac.Controllers
         #endregion
 
         #region Version / Headers / geo / myip / reqinfo / personal.lampa
+        [HttpGet]
         [AllowAnonymous]
         [Route("/version")]
         public ActionResult Version() => Content($"{appversion}.{minorversion}");
 
+        [HttpGet]
         [AllowAnonymous]
         [Route("/ping")]
         public ActionResult PingPong() => Content("pong");
 
+        [HttpGet]
         [AllowAnonymous]
         [Route("/headers")]
         public ActionResult Headers(string type)
@@ -83,6 +88,7 @@ namespace Lampac.Controllers
             return Json(HttpContext.Request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString()));
         }
 
+        [HttpGet]
         [AllowAnonymous]
         [Route("/geo")]
         public ActionResult Geo(string select, string ip)
@@ -104,10 +110,12 @@ namespace Lampac.Controllers
             });
         }
 
+        [HttpGet]
         [AllowAnonymous]
         [Route("/myip")]
         public ActionResult MyIP() => Content(requestInfo.IP);
 
+        [HttpGet]
         [Route("/reqinfo")]
         public ActionResult Reqinfo() => ContentTo(JsonConvert.SerializeObject(requestInfo, new JsonSerializerSettings()
         {
@@ -115,6 +123,7 @@ namespace Lampac.Controllers
             DefaultValueHandling = DefaultValueHandling.Ignore
         }));
 
+        [HttpGet]
         [AllowAnonymous]
         [Route("/personal.lampa")]
         [Route("/lampa-main/personal.lampa")]
@@ -123,6 +132,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region testaccsdb
+        [HttpGet]
         [Route("/testaccsdb")]
         public ActionResult TestAccsdb(string account_email, string uid) 
         {
@@ -170,6 +180,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region Sync
+        [HttpGet]
         [Route("/api/sync")]
         public ActionResult Sync()
         {
@@ -200,6 +211,7 @@ namespace Lampac.Controllers
 
 
         #region app.min.js
+        [HttpGet]
         [AllowAnonymous]
         [Route("/app.min.js")]
         [Route("{type}/app.min.js")]
@@ -310,6 +322,7 @@ namespace Lampac.Controllers
         #endregion
 
         #region app.css
+        [HttpGet]
         [AllowAnonymous]
         [Route("/css/app.css")]
         [Route("{type}/css/app.css")]

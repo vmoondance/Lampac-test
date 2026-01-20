@@ -31,6 +31,7 @@ namespace Tracks.Controllers
         }
 
 
+        [HttpGet]
         [Route("ffprobe")]
         async public Task<ActionResult> Ffprobe(string media, bool showerror)
         {
