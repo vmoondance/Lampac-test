@@ -40,6 +40,8 @@ namespace Shared.Engine
                 return string.Empty;
 
             int byteCount = Encoding.UTF8.GetByteCount(text);
+            if (512 > byteCount)
+                return md5Stack(text, byteCount);
 
             byte* nativeBuffer = (byte*)NativeMemory.Alloc((nuint)byteCount);
             Span<byte> utf8 = new Span<byte>(nativeBuffer, byteCount);
@@ -62,6 +64,23 @@ namespace Shared.Engine
             {
                 NativeMemory.Free(nativeBuffer);
             }
+        }
+
+        static string md5Stack(ReadOnlySpan<char> text, int byteCount)
+        {
+            Span<byte> utf8 = stackalloc byte[byteCount];
+
+            Encoding.UTF8.GetBytes(text, utf8);
+
+            Span<byte> hash = stackalloc byte[16];     // MD5 = 16 байт
+            if (!MD5.TryHashData(utf8, hash, out _))
+                return string.Empty;
+
+            Span<char> hex = stackalloc char[32];      // 16 байт -> 32 hex-символа
+            if (!Convert.TryToHexStringLower(hash, hex, out _))
+                return string.Empty;
+
+            return new string(hex);
         }
 
         public static string md5File(string path)
