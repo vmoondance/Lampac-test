@@ -1303,8 +1303,9 @@ namespace Shared
             httptimeout = 10
         };
 
-        public OnlinesSettings MoonAnime { get; set; } = new OnlinesSettings("MoonAnime", "kwwsv=22dsl1prrqdqlph1duw", token: ";98iHI0H5h4Ef05fd7640h9D4830:;3GIG0:6:F9E", rch_access: "apk", stream_access: "apk,cors,web") 
-        { 
+        public OnlinesSettings MoonAnime { get; set; } = new OnlinesSettings("MoonAnime", "kwwsv=22dsl1prrqdqlph1duw", token: ";98iHI0H5h4Ef05fd7640h9D4830:;3GIG0:6:F9E", rch_access: "apk", stream_access: "apk,cors") 
+        {
+            rchstreamproxy = "web",
             geo_hide = ["RU", "BY"] 
         };
 
