@@ -11,8 +11,10 @@ using System.Threading;
 
 namespace Shared.Engine
 {
-    public class HybridCache : IHybridCache
+    public class HybridCache : BaseHybridCache, IHybridCache
     {
+        sealed record class reqHistoryEntry(DateTime ex, ConcurrentDictionary<string, DateTime> requests);
+
         #region static
         static readonly ThreadLocal<JsonSerializer> _serializer = new ThreadLocal<JsonSerializer>(JsonSerializer.CreateDefault);
 
@@ -22,12 +24,12 @@ namespace Shared.Engine
 
         static DateTime _nextClearDb = DateTime.Now.AddMinutes(5);
 
-        static readonly ConcurrentDictionary<string, (DateTime extend, bool IsSerialize, DateTime ex, object value)> tempDb = new();
+        static readonly ConcurrentDictionary<string, TempEntry> tempDb = new();
 
         /// <summary>
         /// key, (ex кеша, <ip, время>)
         /// </summary>
-        static readonly ConcurrentDictionary<string, (DateTime ex, ConcurrentDictionary<string, DateTime> requests)> requestHistory = new();
+        static readonly ConcurrentDictionary<string, reqHistoryEntry> requestHistory = new();
 
         public static int Stat_ContTempDb => tempDb.IsEmpty ? 0 : tempDb.Count;
         #endregion
@@ -275,7 +277,12 @@ namespace Shared.Engine
                                     }
                                     else
                                     {
-                                        value = (TItem)Convert.ChangeType(r.GetString(1), typeof(TItem), CultureInfo.InvariantCulture);
+                                        string val = r.GetString(1);
+
+                                        if (typeof(TItem) == typeof(string))
+                                            value = (TItem)(object)val;
+                                        else
+                                            value = (TItem)Convert.ChangeType(val, typeof(TItem), CultureInfo.InvariantCulture);
                                     }
 
                                     updateRequestHistory(key, ex, value);
@@ -349,7 +356,7 @@ namespace Shared.Engine
                 /// дополнительный кеш для сериалов, что бы выборка сезонов/озвучки не дергала sql 
                 var extend = DateTime.Now.AddSeconds(Math.Max(15, AppInit.conf.cache.extend));
 
-                tempDb.TryAdd(key, (extend, IsSerialize, absoluteExpiration.DateTime, value));
+                tempDb.TryAdd(key, new TempEntry(extend, IsSerialize, absoluteExpiration.DateTime, value));
 
                 return true;
             }
@@ -366,7 +373,7 @@ namespace Shared.Engine
             if (AppInit.conf.cache.type != "hybrid" || requestInfo == null)
                 return;
 
-            var history = requestHistory.GetOrAdd(key, _ => (ex, new ConcurrentDictionary<string, DateTime>()));
+            var history = requestHistory.GetOrAdd(key, _ => new reqHistoryEntry(ex, new ConcurrentDictionary<string, DateTime>()));
             history.requests.AddOrUpdate(requestInfo.IP, DateTime.UtcNow, (k,v) => DateTime.UtcNow);
 
             if (history.requests.Count >= AppInit.conf.cache.reqIPs)
@@ -380,70 +387,6 @@ namespace Shared.Engine
                 requestHistory.TryRemove(key, out _);
                 tempDb.TryRemove(key, out _);
             }
-        }
-        #endregion
-
-        #region collection capacity
-        static bool IsCapacityCollection(Type type)
-        {
-            if (type == typeof(string) || type.IsArray)
-                return false;
-
-            foreach (var iface in type.GetInterfaces())
-            {
-                if (!iface.IsGenericType)
-                    continue;
-
-                var def = iface.GetGenericTypeDefinition();
-                if (def == typeof(ICollection<>) || def == typeof(IReadOnlyCollection<>))
-                    return true;
-            }
-
-            return false;
-        }
-
-        static int GetCapacity(object value)
-        {
-            if (value is string)
-                return 0;
-
-            foreach (var iface in value.GetType().GetInterfaces())
-            {
-                if (!iface.IsGenericType)
-                    continue;
-
-                var def = iface.GetGenericTypeDefinition();
-
-                if (def == typeof(ICollection<>) || def == typeof(IReadOnlyCollection<>))
-                {
-                    var countProperty = iface.GetProperty("Count");
-
-                    if (countProperty?.PropertyType == typeof(int))
-                        return (int)countProperty.GetValue(value);
-                }
-            }
-
-            return 0;
-        }
-
-        static object CreateCollectionWithCapacity(Type type, int capacity)
-        {
-            if (type == typeof(string) || type.IsArray)
-                return null;
-
-            var ctor = type.GetConstructor(new[] { typeof(int) });
-            if (ctor != null)
-                return ctor.Invoke(new object[] { capacity });
-
-            if (type.IsInterface && type.IsGenericType)
-            {
-                var listType = typeof(List<>).MakeGenericType(type.GetGenericArguments());
-                var listCtor = listType.GetConstructor(new[] { typeof(int) });
-                if (listCtor != null)
-                    return listCtor.Invoke(new object[] { capacity });
-            }
-
-            return null;
         }
         #endregion
     }

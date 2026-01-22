@@ -492,6 +492,10 @@ namespace Lampac.Engine.Middlewares
                             else
                                 res.JpegsaveStream(outArray);
 
+                            // drop rss
+                            image.Invalidate();
+                            res.Invalidate();
+
                             if (outArray.Length > 1000)
                                 return true;
                         }

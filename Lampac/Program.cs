@@ -91,6 +91,11 @@ namespace Lampac
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
+            NetVips.Cache.Max = 0;      // 0 операций в кэше
+            NetVips.Cache.MaxMem = 0;   // 0 байт памяти под кэш
+            NetVips.Cache.MaxFiles = 0; // 0 файлов в файловом кэше
+            NetVips.Cache.Trace = false;
+
             var init = AppInit.conf;
             var mods = init.BaseModule;
 

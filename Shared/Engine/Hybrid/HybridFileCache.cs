@@ -3,13 +3,17 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shared.Engine.Utilities;
 using System.Collections.Concurrent;
+using System.Globalization;
+using System.IO.Compression;
 using System.Text;
 using System.Threading;
 
 namespace Shared.Engine
 {
-    public class HybridFileCache : IHybridCache
+    public class HybridFileCache : BaseHybridCache, IHybridCache
     {
+        sealed record class cacheEntry(string path, DateTime ex, int capacity);
+
         #region static
         static readonly ThreadLocal<JsonSerializer> _serializer = new ThreadLocal<JsonSerializer>(JsonSerializer.CreateDefault);
         static readonly ThreadLocal<Encoding> _utf8NoBom = new ThreadLocal<Encoding>(() => new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
@@ -18,16 +22,11 @@ namespace Shared.Engine
 
         static Timer _clearTempDb, _cleanupTimer;
 
-        static readonly ConcurrentDictionary<string, DateTime> cacheFiles = new();
+        static readonly ConcurrentDictionary<string, cacheEntry> cacheFiles = new();
 
-        static readonly ConcurrentDictionary<string, (DateTime extend, bool IsSerialize, DateTime ex, object value)> tempDb = new();
+        static readonly ConcurrentDictionary<string, TempEntry> tempDb = new();
 
         public static int Stat_ContTempDb => tempDb.IsEmpty ? 0 : tempDb.Count;
-
-        static string getFilePath(string md5key, DateTime ex)
-        {
-            return $"cache/fdb/{md5key}-{ex.ToFileTime()}";
-        }
         #endregion
 
         #region Configure
@@ -45,21 +44,18 @@ namespace Shared.Engine
             {
                 try
                 {
-                    // cacheKey-<time>
-                    ReadOnlySpan<char> fileName = inFile.AsSpan();
-                    int lastSlash = fileName.LastIndexOfAny('\\', '/');
-                    if (lastSlash >= 0)
-                        fileName = fileName.Slice(lastSlash + 1);
+                    // cacheKey-time-capacity
+                    string path = Path.GetFileName(inFile);
+                    string[] parts = path.Split('-');
 
-                    int dash = fileName.IndexOf('-');
-                    if (dash <= 0)
+                    if (parts.Length != 3)
                     {
                         File.Delete(inFile);
                         continue;
                     }
 
-                    ReadOnlySpan<char> fileTimeSpan = fileName.Slice(dash + 1);
-                    if (!long.TryParse(fileTimeSpan, out long fileTime) || fileTime == 0)
+                    #region ex
+                    if (!long.TryParse(parts[1], out long fileTime) || fileTime == 0)
                     {
                         File.Delete(inFile);
                         continue;
@@ -72,10 +68,11 @@ namespace Shared.Engine
                         File.Delete(inFile);
                         continue;
                     }
+                    #endregion
 
-                    string cachekey = new string(fileName.Slice(0, dash));
+                    int.TryParse(parts[2], out int capacity);
 
-                    cacheFiles[cachekey] = ex;
+                    cacheFiles[parts[0]] = new cacheEntry(path, ex, capacity);
                 }
                 catch { }
             }
@@ -103,31 +100,25 @@ namespace Shared.Engine
                     {
                         try
                         {
-                            string path = getFilePath(tdb.Key, tdb.Value.ex);
+                            int capacity = GetCapacity(tdb.Value.value);
+                            string path = $"cache/fdb/{tdb.Key}-{tdb.Value.ex.ToFileTime()}-{capacity}";
 
                             if (tdb.Value.IsSerialize)
                             {
-                                using (var fs = new FileStream(path,
-                                    FileMode.Create,
-                                    FileAccess.Write,
-                                    FileShare.Read,
-                                    bufferSize: PoolInvk.bufferSize,
-                                    options: FileOptions.SequentialScan))
+                                using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read))
                                 {
-                                    using (var sw = new StreamWriter(fs,
-                                        _utf8NoBom.Value,
-                                        bufferSize: PoolInvk.bufferSize,
-                                        leaveOpen: false))
+                                    using (var gzip = new GZipStream(fs, CompressionLevel.Fastest))
                                     {
-                                        using (var jw = new JsonTextWriter(sw)
+                                        using (var sw = new StreamWriter(gzip, _utf8NoBom.Value))
                                         {
-                                            Formatting = Formatting.None,
-                                            CloseOutput = false,
-                                            AutoCompleteOnClose = false
-                                        })
-                                        {
-                                            var serializer = _serializer.Value;
-                                            serializer.Serialize(jw, tdb.Value.value);
+                                            using (var jw = new JsonTextWriter(sw)
+                                            {
+                                                Formatting = Formatting.None
+                                            })
+                                            {
+                                                var serializer = _serializer.Value;
+                                                serializer.Serialize(jw, tdb.Value.value);
+                                            }
                                         }
                                     }
                                 }
@@ -137,7 +128,7 @@ namespace Shared.Engine
                                 File.WriteAllText(path, (string)tdb.Value.value);
                             }
 
-                            cacheFiles[tdb.Key] = tdb.Value.ex;
+                            cacheFiles[tdb.Key] = new cacheEntry(path, tdb.Value.ex, capacity);
                             tempDb.TryRemove(tdb.Key, out _);
                         }
                         catch { }
@@ -166,14 +157,12 @@ namespace Shared.Engine
                 {
                     try
                     {
-                        if (_c.Value > now)
+                        if (_c.Value.ex > now)
                             continue;
-
-                        string cachefile = getFilePath(_c.Key, _c.Value);
 
                         try
                         {
-                            File.Delete(cachefile);
+                            File.Delete(_c.Value.path);
                         }
                         catch { }
 
@@ -229,38 +218,58 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    if (!cacheFiles.TryGetValue(md5key, out DateTime _cacheFileEx) || DateTime.Now > _cacheFileEx)
+                    if (!cacheFiles.TryGetValue(md5key, out cacheEntry _cache) || DateTime.Now > _cache.ex)
                         return false;
 
-                    string path = getFilePath(md5key, _cacheFileEx);
+                    string path = $"cache/fdb/{_cache.path}";
 
                     if (IsDeserialize)
                     {
                         using (var fs = File.OpenRead(path))
                         {
-                            using (var sr = new StreamReader(fs,
-                                Encoding.UTF8,
-                                detectEncodingFromByteOrderMarks: false,
-                                bufferSize: PoolInvk.bufferSize,
-                                leaveOpen: false))
+                            using (var gzip = new GZipStream(fs, CompressionMode.Decompress))
                             {
-                                using (var jsonReader = new JsonTextReader(sr)
+                                using (var sr = new StreamReader(gzip, Encoding.UTF8))
                                 {
-                                    ArrayPool = NewtonsoftPool.Array,
-                                    CloseInput = false
-                                })
-                                {
-                                    var serializer = _serializer.Value;
-                                    value = serializer.Deserialize<TItem>(jsonReader);
+                                    using (var jsonReader = new JsonTextReader(sr)
+                                    {
+                                        ArrayPool = NewtonsoftPool.Array
+                                    })
+                                    {
+                                        var serializer = _serializer.Value;
+
+                                        if (IsCapacityCollection(type) && _cache.capacity > 0)
+                                        {
+                                            var instance = CreateCollectionWithCapacity(type, _cache.capacity);
+                                            if (instance != null)
+                                            {
+                                                serializer.Populate(jsonReader, instance);
+                                                value = (TItem)instance;
+                                            }
+                                            else
+                                            {
+                                                value = serializer.Deserialize<TItem>(jsonReader);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            value = serializer.Deserialize<TItem>(jsonReader);
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                     else
                     {
-                        value = (TItem)System.ComponentModel.TypeDescriptor
-                            .GetConverter(typeof(TItem))
-                            .ConvertFromInvariantString(File.ReadAllText(path));
+                        string val = File.ReadAllText(path);
+
+                        if (typeof(TItem) == typeof(string))
+                            value = (TItem)(object)val;
+                        else
+                        {
+                            value = (TItem)Convert.ChangeType(val, typeof(TItem), CultureInfo.InvariantCulture);
+                        }
                     }
 
                     return true;
@@ -328,7 +337,7 @@ namespace Shared.Engine
                 /// дополнительный кеш для сериалов, что бы выборка сезонов/озвучки не дергала sql 
                 var extend = DateTime.Now.AddSeconds(Math.Max(15, AppInit.conf.cache.extend));
 
-                tempDb.TryAdd(md5key, (extend, IsSerialize, absoluteExpiration.DateTime, value));
+                tempDb.TryAdd(md5key, new TempEntry(extend, IsSerialize, absoluteExpiration.DateTime, value));
 
                 return true;
             }

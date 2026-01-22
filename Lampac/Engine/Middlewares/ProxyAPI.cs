@@ -668,7 +668,7 @@ namespace Lampac.Engine.Middlewares
                         if (!e.MoveNext())
                             continue;
 
-                        var first = e.Current;
+                        string first = e.Current;
 
                         response.Headers[key] = e.MoveNext()
                             ? string.Join("; ", values)

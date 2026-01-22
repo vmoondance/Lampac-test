@@ -5,7 +5,6 @@ using Shared;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Lampac.Engine.Middlewares
@@ -55,12 +54,13 @@ namespace Lampac.Engine.Middlewares
             #region valid query
             var builder = new QueryBuilder();
             var dict = new Dictionary<string, StringValues>(StringComparer.Ordinal);
+            var sbQuery = new StringBuilder(32);
 
             foreach (var q in context.Request.Query)
             {
                 if (IsValidQueryName(q.Key))
                 {
-                    string val = ValidQueryValue(q.Key, q.Value);
+                    string val = ValidQueryValue(sbQuery, q.Key, q.Value);
                     builder.Add(q.Key, val);
                     dict[q.Key] = val;
                 }
@@ -127,9 +127,7 @@ namespace Lampac.Engine.Middlewares
             return true;
         }
 
-        static readonly ThreadLocal<StringBuilder> sbQueryValue = new(() => new StringBuilder(256));
-
-        static string ValidQueryValue(string name, StringValues values)
+        static string ValidQueryValue(StringBuilder sb, string name, StringValues values)
         {
             if (values.Count == 0)
                 return string.Empty;
@@ -137,14 +135,11 @@ namespace Lampac.Engine.Middlewares
             if (values.Count > 1)
                 return string.Empty;
 
-            ReadOnlySpan<char> value = values[0];
+            string value = values[0];
 
-            if (value.IsEmpty)
+            if (string.IsNullOrEmpty(value))
                 return string.Empty;
 
-            bool _newQuery = false;
-
-            var sb = sbQueryValue.Value;
             sb.Clear();
 
             foreach (char ch in value)
@@ -175,14 +170,9 @@ namespace Lampac.Engine.Middlewares
                         continue;
                     }
                 }
-
-                _newQuery = true;
             }
 
-            if (_newQuery)
-                return sb.ToString();
-
-            return values[0];
+            return sb.ToString();
         }
         #endregion
     }

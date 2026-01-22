@@ -17,7 +17,7 @@ namespace Shared
         });
 
 
-        public static int bufferSize => 16 * 1024;
+        public static int bufferSize => 8 * 1024;
 
         public static int rentChunk => 8 * 1024;
 
@@ -30,6 +30,8 @@ namespace Shared
 
         static readonly int[] sizesRent =
         {
+            4 * 1024,
+            8 * 1024,
             16 * 1024,
             32 * 1024,
             64 * 1024,
