@@ -570,7 +570,7 @@ namespace Lampac.Engine.Middlewares
                     process.StartInfo.CreateNoWindow = true;
 
                     process.Start();
-                    process.WaitForExit();
+                    await process.WaitForExitAsync();
 
                     if (process.ExitCode != 0)
                         return false;

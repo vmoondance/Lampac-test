@@ -147,7 +147,7 @@ namespace Online.Controllers
                 }
             }
 
-            return ContentTo(stpl.ToJson());
+            return ContentTo(stpl);
         }
         #endregion
 

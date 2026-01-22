@@ -49,7 +49,7 @@ namespace Online.Controllers
         async public Task<ActionResult> Index(long orid, string imdb_id, long kinopoisk_id, string title, string original_title, int s = -1, bool rjson = false, bool similar = false)
         {
             if (similar || (orid == 0 && kinopoisk_id == 0 && string.IsNullOrWhiteSpace(imdb_id)))
-                return await RouteSearch(title, rjson);
+                return await RouteSearch(title);
 
             if (await IsRequestBlocked(rch: true))
                 return badInitMsg;
@@ -70,7 +70,7 @@ namespace Online.Controllers
 
         [HttpGet]
         [Route("lite/collaps-search")]
-        async public Task<ActionResult> RouteSearch(string title, bool rjson = false)
+        async public Task<ActionResult> RouteSearch(string title)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return OnError();
