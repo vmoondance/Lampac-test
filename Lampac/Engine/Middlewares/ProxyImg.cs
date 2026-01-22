@@ -326,6 +326,8 @@ namespace Lampac.Engine.Middlewares
                     else
                     {
                         #region rsize
+                        httpContext.Response.ContentType = contentType;
+
                         rsize_reset:
 
                         using (var inArray = PoolInvk.msm.GetStream())
@@ -362,6 +364,29 @@ namespace Lampac.Engine.Middlewares
                                     else if (AppInit.conf.imagelibrary == "ImageMagick" && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                                     {
                                         successConvert = await ImageMagick(inArray, outArray, width, height, cacheimg ? outFile : null);
+
+                                        if (cacheimg)
+                                        {
+                                            if (successConvert)
+                                            {
+                                                inArray.Dispose();
+                                                outArray.Dispose();
+                                                semaphore?.Release();
+
+                                                if (AppInit.conf.multiaccess)
+                                                {
+                                                    using (var handle = File.OpenHandle(outFile))
+                                                        cacheFiles[md5key] = (int)RandomAccess.GetLength(handle);
+                                                }
+
+                                                await httpContext.Response.SendFileAsync(outFile, ctsHttp.Token).ConfigureAwait(false);
+                                                return;
+                                            }
+
+                                            proxyManager?.Refresh();
+                                            httpContext.Response.Redirect(href);
+                                            return;
+                                        }
                                     }
                                 }
 
@@ -370,8 +395,6 @@ namespace Lampac.Engine.Middlewares
 
                                 if (successConvert)
                                     proxyManager?.Success();
-
-                                httpContext.Response.ContentType = contentType;
 
                                 if (AppInit.conf.serverproxy.responseContentLength)
                                     httpContext.Response.ContentLength = resultArray.Length;
@@ -514,25 +537,19 @@ namespace Lampac.Engine.Middlewares
         /// <summary>
         /// apt install -y imagemagick libpng-dev libjpeg-dev libwebp-dev
         /// </summary>
-        async static Task<bool> ImageMagick(Stream inArray, Stream outArray, int width, int height, string myoutputFilePath)
+        async static Task<bool> ImageMagick(Stream inArray, Stream outArray, int width, int height, string outputFilePath)
         {
-            string inputFilePath = null;
-            string outputFilePath = null;
-
-            if (Directory.Exists("/dev/shm"))
-            {
-                inputFilePath = $"/dev/shm/{CrypTo.md5(DateTime.Now.ToBinary().ToString())}.in";
-                outputFilePath = myoutputFilePath ?? $"/dev/shm/{CrypTo.md5(DateTime.Now.ToBinary().ToString())}.out";
-            }
-
-            if (inputFilePath == null)
-                inputFilePath = Path.GetTempFileName();
-
-            if (outputFilePath == null) 
-                outputFilePath = myoutputFilePath ?? Path.GetTempFileName();
-
             if (imaGikPath == null)
                 imaGikPath = File.Exists("/usr/bin/magick") ? "magick" : "convert";
+
+            string inputFilePath = getTempFileName();
+
+            bool outFileIsTemp = false;
+            if (outputFilePath == null)
+            {
+                outFileIsTemp = true;
+                outputFilePath = getTempFileName();
+            }
 
             try
             {
@@ -559,8 +576,11 @@ namespace Lampac.Engine.Middlewares
                         return false;
                 }
 
-                using (var streamFile = File.OpenRead(outputFilePath))
-                    await streamFile.CopyToAsync(outArray, PoolInvk.bufferSize);
+                if (outFileIsTemp)
+                {
+                    using (var streamFile = File.OpenRead(outputFilePath))
+                        await streamFile.CopyToAsync(outArray, PoolInvk.bufferSize);
+                }
 
                 return true;
             }
@@ -575,11 +595,25 @@ namespace Lampac.Engine.Middlewares
                     if (File.Exists(inputFilePath))
                         File.Delete(inputFilePath);
 
-                    if (File.Exists(outputFilePath) && myoutputFilePath != outputFilePath)
+                    if (outFileIsTemp && File.Exists(outputFilePath))
                         File.Delete(outputFilePath);
                 }
                 catch { }
             }
+        }
+
+
+        static bool? shm = null;
+
+        static string getTempFileName()
+        {
+            if (shm == null)
+                shm = Directory.Exists("/dev/shm");
+
+            if (shm == true)
+                return $"/dev/shm/{CrypTo.md5(DateTime.Now.ToBinary().ToString())}";
+
+            return Path.GetTempFileName();
         }
         #endregion
     }
