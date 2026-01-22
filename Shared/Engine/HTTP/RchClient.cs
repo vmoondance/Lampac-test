@@ -40,14 +40,19 @@ namespace Shared.Engine
 
         static readonly ThreadLocal<JsonSerializer> _serializerIgnoreDeserialize = new ThreadLocal<JsonSerializer>(() => JsonSerializer.Create(new JsonSerializerSettings { Error = (se, ev) => { ev.ErrorContext.Handled = true; } }));
 
-
         public static string ErrorMsg => AppInit.conf.rch.enable ? "rhub не работает с данным балансером" : "Включите rch в init.conf";
 
-        public static EventHandler<(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders)> hub = null;
+        public record class hubEntry(string connectionId, string rchId, string url, string data, Dictionary<string, string> headers, bool returnHeaders);
 
-        public static readonly ConcurrentDictionary<string, (string ip, string host, RchClientInfo info, NwsConnection connection)> clients = new();
+        public static EventHandler<hubEntry> hub = null;
 
-        public static readonly ConcurrentDictionary<string, (MemoryStream ms, TaskCompletionSource<string> tcs)> rchIds = new();
+        public record class clientEntry(string ip, string host, RchClientInfo info, NwsConnection connection);
+
+        public static readonly ConcurrentDictionary<string, clientEntry> clients = new();
+
+        public record class rchIdEntry(MemoryStream ms, TaskCompletionSource<string> tcs);
+
+        public static readonly ConcurrentDictionary<string, rchIdEntry> rchIds = new();
 
 
         async static void CheckConnection(object state)
@@ -116,7 +121,7 @@ namespace Shared.Engine
             if (info == null)
                 info = new RchClientInfo() { version = -1 };
 
-            clients.AddOrUpdate(connectionId, (ip, host, info, connection), (i, j) => (ip, host, info, connection));
+            clients.AddOrUpdate(connectionId, new clientEntry(ip, host, info, connection), (i, j) => new clientEntry(ip, host, info, connection));
 
             if (InvkEvent.IsRchRegistry())
                 InvkEvent.RchRegistry(new EventRchRegistry(connectionId, ip, host, info, connection));
@@ -396,12 +401,12 @@ namespace Shared.Engine
 
             try
             {
-                var rchHub = rchIds.GetOrAdd(rchId, _ => (ms, new TaskCompletionSource<string>()));
+                var rchHub = rchIds.GetOrAdd(rchId, _ => new rchIdEntry(ms, new TaskCompletionSource<string>()));
 
                 #region send_headers
                 Dictionary<string, string> send_headers = null;
 
-                if (useDefaultHeaders && clientInfo.data.rch_info.rchtype == "apk")
+                if (useDefaultHeaders && clientInfo.data?.info?.rchtype == "apk")
                 {
                     send_headers = new Dictionary<string, string>(Http.defaultUaHeaders, StringComparer.OrdinalIgnoreCase)
                     {
@@ -418,7 +423,7 @@ namespace Shared.Engine
                         send_headers[h.name] = h.val;
                 }
 
-                if (send_headers != null && send_headers.Count > 0 && clientInfo.data.rch_info.rchtype != "apk")
+                if (send_headers != null && send_headers.Count > 0 && clientInfo.data?.info?.rchtype != "apk")
                 {
                     var new_headers = new Dictionary<string, string>(Math.Min(10, send_headers.Count));
 
@@ -451,7 +456,7 @@ namespace Shared.Engine
                 }
                 #endregion
 
-                hub.Invoke(null, (connectionId, rchId, url, data, Http.NormalizeHeaders(send_headers), returnHeaders));
+                hub.Invoke(null, new hubEntry(connectionId, rchId, url, data, Http.NormalizeHeaders(send_headers), returnHeaders));
 
                 if (!waiting)
                     return null;
@@ -632,12 +637,12 @@ namespace Shared.Engine
         #region InfoConnected
         public RchClientInfo InfoConnected()
         {
-            return SocketClient().data.rch_info;
+            return SocketClient().data?.info;
         }
         #endregion
 
         #region SocketClient
-        public (string connectionId, (string ip, string host, RchClientInfo rch_info, NwsConnection connection) data) SocketClient()
+        public (string connectionId, clientEntry data) SocketClient()
         {
             if (AppInit.conf.WebSocket.type == "nws")
             {

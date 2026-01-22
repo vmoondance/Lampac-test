@@ -371,6 +371,8 @@ namespace Lampac.Engine
         #endregion
 
         #region SendAsync
+        sealed record NwsSendModel(string method, object[] args);
+
         static async Task SendAsync(NwsConnection connection, string method, params object[] args)
         {
             if (connection.Socket.State != WebSocketState.Open || string.IsNullOrEmpty(method))
@@ -551,20 +553,6 @@ namespace Lampac.Engine
                 connection.Value.Cancel();
         }
         #endregion
-
-
-
-        readonly struct NwsSendModel
-        {
-            public string method { get; }
-            public object[] args { get; }
-
-            public NwsSendModel(string method, object[] args)
-            {
-                this.method = method;
-                this.args = args;
-            }
-        }
     }
 
 

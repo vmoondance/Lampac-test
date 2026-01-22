@@ -293,7 +293,7 @@ namespace Shared.Engine
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"HybridCache.ReadCache({key}): {ex}\n\n"); }
 
             return false;
         }

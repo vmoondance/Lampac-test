@@ -36,7 +36,7 @@ namespace Shared.Engine
             Directory.CreateDirectory("cache/fdb");
 
             _clearTempDb = new Timer(ClearTempDb, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(1));
-            _cleanupTimer = new Timer(ClearCacheFiles, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(1));
+            _cleanupTimer = new Timer(ClearCacheFiles, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
 
             var now = DateTime.Now;
 
@@ -101,11 +101,12 @@ namespace Shared.Engine
                         try
                         {
                             int capacity = GetCapacity(tdb.Value.value);
-                            string path = $"cache/fdb/{tdb.Key}-{tdb.Value.ex.ToFileTime()}-{capacity}";
+                            string path = $"{tdb.Key}-{tdb.Value.ex.ToFileTime()}-{capacity}";
+                            string pathFile = $"cache/fdb/{path}";
 
                             if (tdb.Value.IsSerialize)
                             {
-                                using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read))
+                                using (var fs = new FileStream(pathFile, FileMode.Create, FileAccess.Write, FileShare.Read))
                                 {
                                     using (var gzip = new GZipStream(fs, CompressionLevel.Fastest))
                                     {
@@ -125,7 +126,7 @@ namespace Shared.Engine
                             }
                             else
                             {
-                                File.WriteAllText(path, (string)tdb.Value.value);
+                                File.WriteAllText(pathFile, (string)tdb.Value.value);
                             }
 
                             cacheFiles[tdb.Key] = new cacheEntry(path, tdb.Value.ex, capacity);
@@ -151,24 +152,27 @@ namespace Shared.Engine
         {
             try
             {
-                var now = DateTime.Now;
-
-                foreach (var _c in cacheFiles)
+                foreach (string inFile in Directory.EnumerateFiles("cache/fdb", "*"))
                 {
-                    try
-                    {
-                        if (_c.Value.ex > now)
-                            continue;
+                    // cacheKey-time-capacity
+                    ReadOnlySpan<char> fileName = inFile.AsSpan();
+                    int lastSlash = fileName.LastIndexOfAny('\\', '/');
+                    if (lastSlash >= 0)
+                        fileName = fileName.Slice(lastSlash + 1);
 
+                    int dash = fileName.IndexOf('-');
+                    if (dash <= 0)
+                        continue;
+
+                    string cachekey = new string(fileName.Slice(0, dash));
+                    if (!cacheFiles.ContainsKey(cachekey))
+                    {
                         try
                         {
-                            File.Delete(_c.Value.path);
+                            File.Delete(inFile);
                         }
                         catch { }
-
-                        cacheFiles.TryRemove(_c.Key, out _);
                     }
-                    catch { }
                 }
             }
             catch { }
@@ -218,14 +222,20 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    if (!cacheFiles.TryGetValue(md5key, out cacheEntry _cache) || DateTime.Now > _cache.ex)
+                    if (!cacheFiles.TryGetValue(md5key, out cacheEntry _cache))
                         return false;
+
+                    if (DateTime.Now > _cache.ex)
+                    {
+                        cacheFiles.TryRemove(md5key, out _);
+                        return false;
+                    }
 
                     string path = $"cache/fdb/{_cache.path}";
 
                     if (IsDeserialize)
                     {
-                        using (var fs = File.OpenRead(path))
+                        using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         {
                             using (var gzip = new GZipStream(fs, CompressionMode.Decompress))
                             {
@@ -275,7 +285,7 @@ namespace Shared.Engine
                     return true;
                 }
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"HybridFileCache.ReadCache({key}): {ex}\n\n"); }
 
             return false;
         }
