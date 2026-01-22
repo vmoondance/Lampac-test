@@ -328,7 +328,7 @@ namespace TorrServer.Controllers
 
             foreach (var header in request.Headers)
             {
-                if (header.Key.ToLower() is "authorization")
+                if (header.Key.Equals("authorization", StringComparison.OrdinalIgnoreCase))
                     continue;
 
                 if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && requestMessage.Content != null)
@@ -354,15 +354,14 @@ namespace TorrServer.Controllers
             {
                 foreach (var header in headers)
                 {
-                    if (header.Key.ToLower() is "transfer-encoding" or "etag" or "connection" or "content-security-policy" or "content-disposition")
+                    if (header.Key.Equals("transfer-encoding", StringComparison.OrdinalIgnoreCase) ||
+                        header.Key.Equals("etag", StringComparison.OrdinalIgnoreCase) ||
+                        header.Key.Equals("connection", StringComparison.OrdinalIgnoreCase) ||
+                        header.Key.Equals("content-security-policy", StringComparison.OrdinalIgnoreCase) ||
+                        header.Key.Equals("content-disposition", StringComparison.OrdinalIgnoreCase))
                         continue;
 
-                    string value = string.Empty;
-                    foreach (var val in header.Value)
-                        value += $"; {val}";
-
-                    response.Headers[header.Key] = Regex.Replace(value, "^; ", "");
-                    //response.Headers[header.Key] = header.Value.ToArray();
+                    response.Headers[header.Key] = header.Value.ToArray();
                 }
             }
             #endregion
