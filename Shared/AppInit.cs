@@ -578,7 +578,7 @@ namespace Shared
             intervalupdate = 90, // minute
             basetag = true, index = "lampa-main/index.html",
             git = "yumata/lampa",
-            tree = "b153c27c9c06bbb68183652bbfb5d71b8db79c4b"
+            tree = "a02cdb6a678f724b8abf9f9ace35dfd3401d7b33"
         };
 
         public OnlineConf online = new OnlineConf()

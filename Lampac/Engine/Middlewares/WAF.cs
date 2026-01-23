@@ -6,7 +6,6 @@ using Shared.Models;
 using Shared.Models.AppConf;
 using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -98,6 +97,22 @@ namespace Lampac.Engine.Middlewares
                 {
                     httpContext.Response.StatusCode = 403;
                     return Task.CompletedTask;
+                }
+            }
+            #endregion
+
+            #region ASN Range Deny
+            if (waf.asnsDeny != null && requestInfo.ASN != -1)
+            {
+                long asn = requestInfo.ASN;
+
+                foreach (var r in waf.asnsDeny)
+                {
+                    if (asn >= r.start && asn <= r.end)
+                    {
+                        httpContext.Response.StatusCode = 403;
+                        return Task.CompletedTask;
+                    }
                 }
             }
             #endregion
