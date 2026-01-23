@@ -62,7 +62,7 @@ namespace Lampac.Engine.Middlewares
                 {
                     string val = ValidQueryValue(sbQuery, q.Key, q.Value);
 
-                    if (!string.IsNullOrEmpty(val) && dict.TryAdd(q.Key, val))
+                    if (dict.TryAdd(q.Key, val))
                         builder.Add(q.Key, val);
                 }
             }

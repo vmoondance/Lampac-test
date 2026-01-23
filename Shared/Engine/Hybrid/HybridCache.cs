@@ -229,7 +229,7 @@ namespace Shared.Engine
                 }
                 else
                 {
-                    singleCache = true;
+                    singleCache = AppInit.conf.cache.type == "sql";
 
                     using (var sqlDb = HybridCacheContext.Factory?.CreateDbContext() ?? new HybridCacheContext())
                     {
