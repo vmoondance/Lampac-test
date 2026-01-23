@@ -312,10 +312,12 @@ namespace Shared
             if (playlists == null || playlists.Count == 0)
                 return OnError("playlists", false);
 
+            var msm = HttpContext.Features.Get<RecyclableMemoryStream>();
+
             var headers_stream = HeadersModel.InitOrNull(init.headers_stream);
             var headers_image = httpHeaders(init.host, HeadersModel.InitOrNull(init.headers_image));
 
-            if (singleCache)
+            if (singleCache && msm == null)
             {
                 foreach (var pl in playlists)
                 {
@@ -340,8 +342,6 @@ namespace Shared
 
                 Response.ContentType = "application/json; charset=utf-8";
                 Response.Headers.CacheControl = "no-cache";
-
-                var msm = HttpContext.Features.Get<RecyclableMemoryStream>();
 
                 using (var writer = new Utf8JsonWriter(msm != null ? msm : Response.BodyWriter, jsonWriterOptions))
                 {
