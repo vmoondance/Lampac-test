@@ -127,6 +127,7 @@ namespace Lampac.Engine.Middlewares
                     (ch >= '0' && ch <= '9') ||
                     ch == '@' || // email
                     ch == '+' || // aes
+                    ch == '*' || // merchant
                     char.IsLetter(ch) // ← любые буквы Unicode
                 )
                 {
