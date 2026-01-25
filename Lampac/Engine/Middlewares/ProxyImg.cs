@@ -505,6 +505,11 @@ namespace Lampac.Engine.Middlewares
         #region NetVipsImage
         private bool NetVipsImage(string href, Stream inArray, Stream outArray, int width, int height)
         {
+            NetVips.Cache.Max = 0;      // 0 операций в кэше
+            NetVips.Cache.MaxMem = 0;   // 0 байт памяти под кэш
+            NetVips.Cache.MaxFiles = 0; // 0 файлов в файловом кэше
+            NetVips.Cache.Trace = false;
+
             try
             {
                 using (var image = NetVips.Image.NewFromStream(inArray, access: NetVips.Enums.Access.Sequential))
