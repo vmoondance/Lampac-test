@@ -18,7 +18,7 @@ namespace Lampac.Controllers
     public class AdminController : BaseController
     {
         #region TryAuthorizeAdmin
-        bool TryAuthorizeAdmin(out ActionResult result)
+        bool TryAuthorizeAdmin(string passwd, out ActionResult result)
         {
             result = null;
 
@@ -28,7 +28,10 @@ namespace Lampac.Controllers
                 return true;
             }
 
-            if (!HttpContext.Request.Cookies.TryGetValue("passwd", out string passwd) || string.IsNullOrWhiteSpace(passwd))
+            if (string.IsNullOrWhiteSpace(passwd))
+                HttpContext.Request.Cookies.TryGetValue("passwd", out passwd);
+
+            if (string.IsNullOrWhiteSpace(passwd))
             {
                 result = Redirect("/admin/auth");
                 return false;
@@ -130,7 +133,7 @@ namespace Lampac.Controllers
             }
             else
             {
-                if (!TryAuthorizeAdmin(out ActionResult badresult))
+                if (!TryAuthorizeAdmin(passwd, out ActionResult badresult))
                     return badresult;
 
                 HttpContext.Response.Cookies.Append("passwd", passwd);
@@ -151,7 +154,7 @@ namespace Lampac.Controllers
         [Route("/admin/init/save")]
         public ActionResult InitSave([FromForm]string json)
         {
-            if (!TryAuthorizeAdmin(out ActionResult badresult))
+            if (!TryAuthorizeAdmin(null, out ActionResult badresult))
                 return badresult;
 
             try
@@ -185,7 +188,7 @@ namespace Lampac.Controllers
         [Route("/admin/init/custom")]
         public ActionResult InitCustom()
         {
-            if (!TryAuthorizeAdmin(out ActionResult badresult))
+            if (!TryAuthorizeAdmin(null, out ActionResult badresult))
                 return badresult;
 
             string json = IO.File.Exists("init.conf") ? IO.File.ReadAllText("init.conf") : null;
@@ -200,7 +203,7 @@ namespace Lampac.Controllers
         [Route("/admin/init/current")]
         public ActionResult InitCurrent()
         {
-            if (!TryAuthorizeAdmin(out ActionResult badresult))
+            if (!TryAuthorizeAdmin(null, out ActionResult badresult))
                 return badresult;
 
             return Content(JsonConvert.SerializeObject(AppInit.conf), contentType: "application/json; charset=utf-8");
@@ -210,7 +213,7 @@ namespace Lampac.Controllers
         [Route("/admin/init/default")]
         public ActionResult InitDefault()
         {
-            if (!TryAuthorizeAdmin(out ActionResult badresult))
+            if (!TryAuthorizeAdmin(null, out ActionResult badresult))
                 return badresult;
 
             return Content(JsonConvert.SerializeObject(new AppInit()), contentType: "application/json; charset=utf-8");
@@ -220,7 +223,7 @@ namespace Lampac.Controllers
         [Route("/admin/init/example")]
         public ActionResult InitExample()
         {
-            if (!TryAuthorizeAdmin(out ActionResult badresult))
+            if (!TryAuthorizeAdmin(null, out ActionResult badresult))
                 return badresult;
 
             return Content(IO.File.Exists("example.conf") ? IO.File.ReadAllText("example.conf") : string.Empty);
@@ -232,7 +235,7 @@ namespace Lampac.Controllers
         [Route("/admin/sync/init")]
         public ActionResult Synchtml()
         {
-            if (!TryAuthorizeAdmin(out ActionResult badresult))
+            if (!TryAuthorizeAdmin(null, out ActionResult badresult))
                 return badresult;
 
             string html = @"
@@ -335,7 +338,7 @@ namespace Lampac.Controllers
         [Route("/admin/sync/init/save")]
         public ActionResult SyncSave([FromForm] string json)
         {
-            if (!TryAuthorizeAdmin(out ActionResult badresult))
+            if (!TryAuthorizeAdmin(null, out ActionResult badresult))
                 return badresult;
 
             try
@@ -360,7 +363,7 @@ namespace Lampac.Controllers
         [Route("/admin/manifest/install")]
         public Task ManifestInstallHtml(string online, string sisi, string jac, string dlna, string tracks, string ts, string catalog, string merch, string eng)
         {
-            if (IO.File.Exists("module/manifest.json") && !TryAuthorizeAdmin(out ActionResult badresult))
+            if (IO.File.Exists("module/manifest.json") && !TryAuthorizeAdmin(null, out ActionResult badresult))
             {
                 HttpContext.Response.Redirect("/admin/auth");
                 return Task.CompletedTask;
